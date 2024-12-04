@@ -1,0 +1,408 @@
+---
+title: "L02 Data Transformation"
+subtitle: "Data Science 1 with R (STAT 301-1)"
+author: "Olivia Allen"
+pagetitle: "L02 Olivia Allen"
+date: today
+
+format:
+  html:
+    toc: true
+    toc-depth: 4
+    toc-location: left
+    embed-resources: true
+    code-fold: false
+    link-external-newwindow: true
+
+execute:
+  warning: false
+
+from: markdown+emoji
+reference-location: margin
+citation-location: margin 
+---
+
+::: {.callout-tip icon=false}
+
+## Github Repo Link✅
+
+[https://github.com/stat301-1-2024-fall/L02-data-transformations-oliviaallen2003.git](https://github.com/stat301-1-2024-fall/L02-data-transformations-oliviaallen2003.git)
+
+:::
+
+## Load packages ✅
+
+```{r}
+#| label: load-pkgs-data
+
+# Loading package(s)
+library(tidyverse)
+library(dplyr)
+library(knitr)
+library(kableExtra)
+
+# load data 
+college_rankings <- read_csv("data/college_rankings.csv")
+college_rankings_codebook <- read_csv("data/college_rankings_codebook.csv")
+
+tinder_data <- read_csv("data/tinder_data.csv")
+tinder_data_codebook <- read_csv("data/tinder_data_codebook.csv")
+```
+
+
+## Exercises
+
+### Exercise 1✅
+
+Using a single pipeline operator ( `|>` or `%>%` ), find all colleges that:
+
+a. Had a tuition greater than $50,000
+b. Are located in Illinois and ranked in the top 50
+c. have a median ACT score greater than 32 or mean SAT score greater than 1430
+d. have a median ACT score greater than 32 or mean SAT score greater than 1430 AND are ranked in the top 50
+
+::: {.callout-tip icon="false"}
+## Solution
+
+```{r}
+#| label: ex-1
+
+# a. Had a tuition greater than $50,000
+college_rankings |> 
+  filter(tuition_fees > 50000) |> 
+  relocate(institution, tuition_fees)
+
+# b. Are located in Illinois and ranked in the top 50 
+college_rankings |> 
+  filter(state_abbr == "IL", 
+         rank_2023 <= 50) |> 
+  relocate(institution, rank_2023, state_abbr) |> 
+  arrange(rank_2023)
+
+# c. have a median ACT score greater than 32 or mean SAT score greater than 1430
+college_rankings |> 
+  filter(act_median > 32 | sat_avg > 1430) |> 
+  relocate(institution, act_median, sat_avg)
+
+# d. have a median ACT score greater than 32 or mean SAT score greater than 1430 AND are ranked in the top 50
+college_rankings |> 
+  filter(act_median > 32 | sat_avg > 1430, rank_2023 <= 50) |>
+  relocate(institution) |>
+  arrange(rank_2023)
+```
+:::
+
+### Exercise 2✅
+
+Find the colleges ranked 2, 3, and 4 in 3 different ways:
+
+1. using the "or" operator
+2. using `%in%`
+3. using `between()`
+
+::: {.callout-tip icon="false"}
+## Solution
+
+```{r}
+#| label: ex-2
+
+# 1. using the "or" operator
+college_rankings |> 
+  filter(rank_2023 == 2 | rank_2023 == 3 | rank_2023 == 4) |> 
+  select(institution, rank_2023) |> 
+  arrange(rank_2023)
+
+# 2. using `%in%`
+college_rankings |> 
+  filter(rank_2023 %in% c(2, 3, 4)) |> 
+  select(institution, rank_2023) |> 
+  arrange(rank_2023)
+
+# 3. Using `between()`
+college_rankings |> 
+  filter(between(rank_2023, 2, 4)) |> 
+  select(institution, rank_2023) |> 
+  arrange(rank_2023)
+
+```
+
+
+:::
+
+### Exercise 3✅
+
+Was a college from every state ranked in this data frame?
+
+::: {.callout-tip icon="false"}
+## Solution
+
+```{r}
+#| label: ex-3
+college_rankings |>
+  distinct(state_abbr)
+
+college_rankings |> 
+  distinct(state_abbr) |> 
+  pull(state_abbr) |> 
+  setdiff(state.abb)
+```
+Although there are 50 distinct values displayed, the data set counted DC as a state when it is not a state. Additionally, Alaska is missing from the printed list. Thus, there is not a college from every state.
+
+:::
+
+### Exercise 4✅
+
+a. Arrange the data to find the most expensive colleges.
+b. Use the slice function to select the 5 most expensive colleges.
+
+::: {.callout-tip icon="false"}
+## Solution
+
+```{r}
+#| label: ex-4
+
+# a. Arrange the data to find the most expensive colleges
+college_rankings |> 
+  arrange(desc(tuition_fees)) |> 
+  select(institution, tuition_fees, rank_2023)
+
+# b. Use the slice function to select the 5 most expensive colleges
+college_rankings |> 
+  arrange(desc(tuition_fees)) |> 
+  select(institution, tuition_fees, rank_2023) |> 
+  slice(1:5)
+
+```
+:::
+
+### Exercise 5✅
+
+Create a variable called `avg_financial_aid` which is calculated as the cost of attendance (tuition, fees, room and board) minus the average net price. **ONLY** include the institution and relevant variables in the printed output.
+
+::: {.callout-tip icon="false"}
+## Solution
+
+```{r}
+#| label: ex-5
+
+college_rankings |> 
+  mutate(avg_financial_aid = tuition_fees, room_board - avg_net_price) |> 
+  select(institution, tuition_fees, avg_net_price, avg_financial_aid, room_board)
+```
+:::
+
+### Exercise 6✅
+
+What happens if you specify the name of the same variable multiple times in a `select()` call?
+
+::: {.callout-tip icon="false"}
+## Solution
+
+```{r}
+#| label: ex-6
+
+college_rankings |> 
+  select(institution, tuition_fees, avg_net_price, tuition_fees)
+```
+There is no error produced by R when you specify the name of the same variable multiple times in a `select()` call. R will not duplicate the column in the output, it just included the column once. For example, in the code above, I specified the variable "tuition_fees" twice in the 'select()' call but it was only included once in the output.
+
+:::
+
+### Exercise 7✅
+
+Use the following vector in conjunction with `any_of()` to select the specified variables from the data frame.
+
+```{r}
+#| label: ex-7-vars
+
+# list of variables
+variables <- c("institution", "state", "rank_2023", "overall_score")
+```
+
+::: {.callout-tip icon="false"}
+## Solution
+
+```{r}
+#| label: ex-7
+college_rankings |> 
+  select(any_of(variables))
+```
+:::
+
+### Exercise 8✅
+
+Use the `contains()` function to select all scores (overall, resources, engagement, outcomes, environment) and the institution from the data frame.
+
+::: {.callout-tip icon="false"}
+## Solution
+
+```{r}
+#| label: ex-8
+
+college_rankings |> 
+  select(institution, contains("score"))
+```
+
+
+:::
+
+### Exercise 9✅
+
+Rename the variable `rank_2023` to `rank` and move that column directly after `institution` in the data frame.
+
+::: {.callout-tip icon="false"}
+## Solution
+
+```{r}
+#| label: ex-9
+college_rankings |> 
+  rename(rank = rank_2023) |> 
+  relocate(rank, .after = institution)
+
+```
+:::
+
+### Exercise 10✅
+
+Do public or private schools on average have a higher tuition, overall score, acceptance rate, and undergraduate enrollment? It would also be useful to have the count of the number of public and private schools in this summary.
+
+::: {.callout-tip icon="false"}
+## Solution
+
+```{r}
+#| label: ex-10
+college_rankings |> 
+  summarise(
+    across(where(is.numeric), \(x) mean(x, na.rm = TRUE)), 
+    n = n(),
+    .by = public
+  ) |>
+ select(public, tuition_fees, overall_score, accept_rate, ug_enrolled, n)
+```
+In terms of number of institutions, there are 336 public schools and 454 private schools in the data. Private schools have higher tuition, with an average of $42,059.94 compared to $23,778.96 for public schools. Private schools also have a higher average overall score of 54.86 than public schools with 47.52 as the overall score. Public schools have a higher acceptance rate, averaging 77.58%, while public schools have 65.86%. Public schools enroll more students on average, 14,493.86 than private schools who average 3,345. 
+:::
+
+
+### Exercise 11✅
+
+You have a hypothetical dataset, `data`, with numeric variables `x`, `y`, `z` and categorical variable `c`.
+
+What is wrong with the following code? Then fix it to accomplish the goal.
+
+a. You are interested in calculating the average of `x`, `y`, and `z`.
+b. You are interested in calculating the average of `x` by `c` and arranging from high to low.
+
+::: {.callout-tip icon="false"}
+## Solution
+
+```{r}
+#| label: ex-11-part-a
+#| eval: false
+
+# pseudo code
+data |> 
+  summarize(
+    mean = mean(x),
+    mean = mean(y),
+    mean = mean(z)
+  )
+
+# fixed code
+data |> 
+  summarize(
+    mean_x = mean(x),
+    mean_y = mean(y),
+    mean_z = mean(z)
+  )
+```
+
+The issue with the code is that it uses the same name 'mean' for all three summary statistics. The code will likely overwrite each time the mean is calculated and only produce the mean of z. I fixed the code by giving each mean a unique name related to the name of the variable. Now the code will return 3 different means, as opposed to one. 
+
+```{r}
+#| label: ex-11-part-b
+#| eval: false
+
+# pseudo code
+data |> 
+  group_by(c) |> 
+  summarize(mean(x)) |> 
+  arrange(desc(x))
+
+# fixed code
+data |> 
+  group_by(c) |> 
+  summarize(mean_x = mean(x)) |> 
+  arrange(desc(mean_x))
+```
+The issue with this code is that it didn't assign a name to the mean. To fix this, I named the mean, 'mean_x' within the summarize() function. Additionally, the arrange() function is sorting by x when it should be sorting the calculated mean of x. I changed this function to sort the variable 'mean_x' to correctly arrange the results from highest to lowest. 
+:::
+
+
+### Exercise 12✅
+
+Use `count()` to find the number of institutions ranked within each state. Print the output with the state with the most institutions on top.
+
+::: {.callout-tip icon="false"}
+## Solution
+
+```{r}
+college_rankings |> 
+  count(state_abbr, name = "num_institutions", sort = TRUE)
+```
+
+:::
+
+## Case Study✅
+
+::: {.callout-tip icon="false"}
+## Solution
+
+```{r echo = FALSE}
+tinder <- read.csv("data/tinder_data.csv")
+
+tinder2 <- tinder |> 
+  filter(number_conversations != 0) 
+
+tinder2$percent_one_message <- tinder2$number_one_msg_conversations/tinder2$number_conversations
+
+ggplot(tinder2, aes(x = percent_one_message)) + 
+  geom_histogram() + 
+  labs(
+    x = "Percent",
+    title = "Distribution of percent of conversations \nwith only one message"
+  )
+
+tinder2 |> select(percent_one_message) |> 
+  summarise_each(funs(median = median, mean = mean, IQR = IQR)) |> 
+  kable()
+
+```
+The distribution of one-message conversations shows that a significant number of users have a high percentage of brief interactions. The histogram reveals that most users have between 30% and 50% of their conversations end after just one message. The median is 30.87%, and the mean is 31.73%, indicating a slight skew towards higher percentages. The IQR suggests that the middle 50% of users experience between 21.61% and 52.48% one-message conversations. A small group of users have close to 100% one-message conversations, highlighting a common trend of short exchanges on the app.
+
+```{r echo = FALSE}
+#| label: most-matches
+#| tbl-cap: "Most matches"
+tinder2 |> 
+  mutate(match_rate = matches / swipes_like) |> 
+  arrange(dplyr::desc(matches)) |> 
+  head(5) |> 
+  select(user_birth_date, user_gender, matches, swipes_like) |>
+  kable() |>
+  add_header_above(c("Users with the most matches" = 4))
+```
+
+
+```{r echo = FALSE}
+#| label: most-matches-per-swipe-like
+#| tbl-cap: "Highest match rate"
+
+tinder2 |> 
+  mutate(match_rate = matches / swipes_like) |> 
+  arrange(dplyr::desc(match_rate)) |> 
+  head(5) |>
+  select(user_birth_date, user_gender, matches, swipes_like, match_rate) |> 
+  kable() |>
+  add_header_above(c("Users with the most matches per swipe like" = 5))
+```
+To determine user popularity on Tinder, I first ranked the top 5 users based on the total number of matches which suggests the user with the most amount of matches was a male born on 1998-03-01 with 23758 matches. However, this man swiped on 198,373 people. This means his rate of matching for every swipe is roughly 12%. This is a very low match rate even though he has the highest number of matches. 4/5 users with the most matches are also all male. In the second table, I created a new variable called match_rate, which is calculated by matches / swipes_like. In this table we can see that the users with the most amount of matches for every swipe right are female. The user with the best match_rate was a female born in 1996-07-24 with a match_rate of roughly 86%. She is also in the top 5 for most matches and is the only user to appear on both tables. Using match rate, it is clear that females are the most liked/popular on this app and the user born on 1996-07-24 with a 86% match rate is the most popular. Using match rate as the metric is the best way to measure popularity because it displays for how often a user is reciprocated in interest, not just the number of matches. A high number of matches doesn't exactly mean popularity if the user is swiping excessively without getting as many matches in return. The match rate balances this by showing how selective or desirable a user is based on mutual interest.
+:::
