@@ -1,0 +1,449 @@
+---
+title: "L05 Exploratory Data Analysis"
+subtitle: "Data Science 1 with R (STAT 301-1)"
+author: "Olivia Allen"
+pagetitle: "L05 Olivia Allen"
+date: today
+
+format:
+  html:
+    toc: true
+    toc-depth: 4
+    toc-location: left
+    embed-resources: true
+    code-fold: false
+    link-external-newwindow: true
+
+execute:
+  warning: false
+
+from: markdown+emoji
+reference-location: margin
+citation-location: margin  
+---
+
+
+::: {.callout-tip icon=false}
+
+## Github Repo Link✅
+
+[https://github.com/stat301-1-2024-fall/L05-eda-oliviaallen2003.git](https://github.com/stat301-1-2024-fall/L05-eda-oliviaallen2003.git)
+
+:::
+
+## Load packages✅
+
+
+```{r}
+#| label: load-pkgs
+
+# Loading package(s)
+library(tidyverse)
+library(nycflights13)
+library(naniar)
+library(lvplot)
+library(reprex)
+```
+
+## Datasets ✅
+
+```{r}
+#| label: datasets
+
+data("diamonds")
+data("flights")
+
+tinder_data <- read_csv("data/tinder_data.csv")
+tinder_data_codebook <- read_csv("data/tinder_data_codebook.csv")
+```
+## Exercises✅
+
+### Exercise 1 ✅
+
+Explore the distribution of each of the `x`, `y`, and `z` variables in `diamonds`. What do you learn? Think about a diamond; think about how we might determine which dimension of a diamond is its length, width, and depth.
+
+::: {.callout-tip icon="false"}
+## Solution
+
+```{r}
+#| label: ex-1
+explore_xyz <- diamonds |>
+  select(x, y, z) |>
+  pivot_longer(
+  cols = everything(),
+  names_to = "dimension",
+  values_to = "value"
+  )
+
+explore_xyz |>
+  ggplot(aes(value, dimension)) + 
+  geom_violin() + 
+  coord_cartesian(xlim = c(0, 10))
+```
+This plot shows that the x and y variables in diamonds have similar distributions with values ranging from roughly 3 to 9. This likely means that diamonds are usually symmetrical in terms of width and length. The z variable, depth has a smaller range, with values ranging from 2 to 5, which suggests that diamonds are generally shallower compared to their width and length.
+:::
+
+### Exercise 2✅
+
+Explore the distribution of `price`. Do you discover anything unusual or surprising? 
+
+::: {.callout-tip icon="false"}
+## Solution
+
+```{r}
+#| label: ex-2
+ggplot(diamonds, aes(x = price)) + 
+  geom_histogram(binwidth = 60, fill = "lightgreen", color = "black") + 
+  labs(title = "Distribution of Diamond Prices",
+       x = "price",
+       y = "frequency")
+```
+This histogram shows that diamond prices are heavily right-skewed, with most diamonds clustered at lower prices and few diamonds at higher prices. The most diamonds are priced below 5,000 dollars. The uniqueness of the graph is the sharp peak in frequency at the lower price range, while higher-priced diamonds are clearly more rare which is evidenced by the long tail towards more expensive diamonds. The saturation of lower-price diamonds does not surprise me because this is likely what the majority of people can afford.
+:::
+
+### Exercise 3✅
+
+What is the major difference between using `coord_cartesian()` vs `xlim()` or `ylim()` to zoom in on a histogram/graphic? What happens if you leave `binwidth` unset? What happens if you try to zoom in so only half a bar shows?
+
+::: {.callout-tip icon="false"}
+## Solution
+
+The key difference is that coord_cartesian() zooms in without altering the data, showing partial bars, whereas xlim()/ylim() remove data outside the limits, potentially excluding bins and changing the histogram. If binwidth is left unset, a default value is chosen. Zooming with coord_cartesian() shows part of a bar, but using xlim()/ylim() may exclude the bar if it's outside the limits, which can misrepresent the data.
+
+:::
+
+### Exercise 4✅
+
+What happens to missing values in a histogram? What happens to missing values in a bar chart? Why is there a difference in how missing values are handled in histograms and bar charts?
+
+::: {.callout-tip icon="false"}
+## Solution
+
+In a histogram, missing values are ignored and not included in the plot. In a bar chart, missing values can be shown in a separate bar that displays the frequency of missing values. There is a difference in how missing valued are handed in histograms and bar charts because histograms deal with continuous numerical data and bar charts deal with categorical data. Missing values are not associated with a number so they can't be displayed on a histogram and for bar charts, missing values can be an additional category. 
+
+:::
+
+### Exercise 5✅
+
+Based on EDA, what variables in the diamonds dataset appears to be most important for predicting the price of a diamond? How is that variable correlated with cut? Why does the combination of those two relationships lead to lower-quality diamonds being more expensive?
+
+::: {.callout-tip icon="false"}
+## Solution
+
+```{r}
+#| label: ex-5
+
+ggplot(diamonds, aes(x = carat, y = price)) + 
+  geom_point(alpha = 0.3) + 
+  labs(title = "Carat vs. Price", x = "Carat", y = "Price")
+
+ggplot(diamonds, aes(x = cut, y = price)) + 
+  geom_boxplot() + 
+  labs(title = "Price Distribution by Cut", x = "Cut", y = "Price")
+
+ggplot(diamonds, aes(x = carat, y = price, color = cut)) + 
+  geom_point(alpha = 0.3) + 
+  labs(title = "Carat vs. Price Colored by Cut", x = "Carat", y = "Price")
+```
+Based on EDA, carat is the most important variable for predicting the price of a diamond. The "Carat vs. Price" scatterplot shows a strong positive correlation: as carat increases, price rises significantly.
+
+The relationship between carat and cut is evident in the "Carat vs. Price Colored by Cut" plot, where larger diamonds tend to have lower cut quality such as "Fair" or "Good", while smaller diamonds more often have higher cut quality such as "Premium" or "Ideal".
+
+This explains why lower-quality diamonds can sometimes be more expensive, while cut impacts price, carat has a greater impact. Thus, a larger diamond with a lower-quality cut can still be more expensive than a smaller, higher-quality one, as shown in the "Price Distribution by Cut" plot.
+
+:::
+
+### Exercise 6✅
+
+One problem with boxplots is that they were developed in an era of much smaller datasets and tend to display a prohibitively large number of “outlying values”. One approach to remedy this problem is the letter value plot. Install the `lvplot` package, and try using `geom_lv()` to display the distribution of price vs. cut. What do you learn? How do you interpret the plots?
+
+::: {.callout-tip icon="false"}
+## Solution
+
+```{r}
+#| label: ex-6
+ggplot(diamonds, aes(x = cut, y = price)) + 
+  geom_lv() + 
+  labs(title = "Letter Value of Price by Cut", x = "Cut", y = "Price")
+```
+The letter value plot shows that while price generally increases with better cuts, the price distribution becomes more compact for higher-quality cuts such as Premium and Ideal. In contrast, Fair and Good cuts show more variability, likely due to the larger diamonds in this cut category, which raises prices despite lower quality. The plot's layering highlights the central tendency of the data and shows that cut alone is not a good predictor of price. This plot suggests that other variables are at play to determine a diamond's price. 
+:::
+
+### Exercise 7✅
+
+Create a visualization of diamond prices vs. a categorical variable from the diamonds dataset using `geom_violin()`, then a faceted `geom_histogram()`, then a colored `geom_freqpoly()`, and then a colored `geom_density()`. Compare and contrast the four plots. What are the pros and cons of each method of visualizing the distribution of a numerical variable based on the levels of a categorical variable?
+
+::: {.callout-tip icon="false"}
+## Solution
+
+```{r}
+#| label: ex-7-plots
+
+ggplot(diamonds, aes(x = cut, y = price)) + 
+  geom_violin(fill = "lightblue") + 
+  labs(title = "Violin Plot of Diamond Prices by Cut", x = "Cut", y = "Price")
+
+ggplot(diamonds, aes(x = price)) + 
+  geom_histogram(binwidth = 500, fill = "lightgreen", color = "black") + 
+  facet_wrap(~ cut) + 
+  labs(title = "Histogram of Diamond Prices by Cut", x = "Price", y = "Count")
+
+ggplot(diamonds, aes(x = price, color = cut)) + 
+  geom_freqpoly(binwidth = 500) + 
+  labs(title = "Frequency Polygon of Diamond Prices by Cut", x = "Price", y = "Count")
+
+ggplot(diamonds, aes(x = price, color = cut)) + 
+  geom_density() + 
+  labs(title = "Density Plot of Diamond Prices by Cut", x = "Price", y = "Density")
+```
+The violin plot shows the distribution of the data across cut levels and provides a clear view of the spread and density of prices for each cut. However, the shape can sometimes be misleading specifically when the dataset has outliers. The histogram is helpful for seeing the frequency of prices and comparing distributions side by side. This plot doesn't give a smooth visualization of the distributions though. The frequency polygon shows price distribution as continuous lines and makes it more simple to compare categories on one grid. This plot doesn't have as much detail as a histogram and is sometimes difficult to read with overlapping lines. The density plot offers a smooth estimate of the price distribution for each cut. It allows you to visualize the distribution clearly and makes it easy to compare on one grid. However, it doesn't show the actual frequency of values which makes it challenging to interpret specific counts. 
+:::
+
+### Exercise 8✅
+
+The plot below provides a visualization of the joint distribution of the cut and color of diamonds in our dataset. We want to more clearly see how the distribution of cut changes given color. Similarly we want to more clearly see how the distribution of color changes given cut. Put another way we want to see the distribution of color within cut. To do this we need to appropriately rescale the data. 
+
+Rescale the data used in the plot below to more clearly show the distribution of (a) cut within color, and then (b) then color within cut. 
+
+```{r}
+#| label: ex-08
+
+# joint distribution of cut & color
+diamonds |> 
+  count(color, cut) |>
+  mutate(prop = n / sum(n)) |>
+  ggplot(mapping = aes(x = color, y = cut)) +
+    geom_tile(mapping = aes(fill = prop))
+```
+::: {.callout-tip icon="false"}
+## Solution
+
+```{r}
+#| label: ex-08-rescale
+
+# distribution of cut given/within color
+diamonds |> 
+  count(color, cut) |>
+  mutate(
+    prop = n / sum(n),
+    .by = color
+  ) |>
+  ggplot(mapping = aes(x = color, y = cut)) +
+    geom_tile(mapping = aes(fill = prop))
+
+# distribution of color given/within cut
+diamonds |> 
+  count(color, cut) |>
+  mutate(
+    prop = n / sum(n),
+    .by = cut
+  ) |>
+  ggplot(mapping = aes(x = color, y = cut)) +
+    geom_tile(mapping = aes(fill = prop))
+
+```
+:::
+
+### Exercise 9✅
+
+In Exercise 8, why is it slightly better to use `aes(x = color, y = cut)` instead of `aes(x = cut, y = color)`?
+
+::: {.callout-tip icon="false"}
+## Solution
+
+It is slightly better to use aes(x = color, y = cut) because it focuses on the distribution of cut within color. When you rescale the data within color, it allows for easier comparison of cut distributions across each color which is also easier to look at. Additionally, because cut has less levels in comparison to color, putting cut on the y-axis makes the graph more visually appealing. 
+
+:::
+
+### Exercise 10✅
+
+Use the `smaller` dataset defined below for this exercise. Visualize the distribution of `carat` broken down by `price`. Construct 2 graphics, one using `cut_width()` and the other using `cut_number()`.
+
+```{r}
+#| label: ex-10
+
+smaller <- diamonds |> 
+  filter(carat < 3)
+```
+
+
+::: {.callout-tip icon="false"}
+## Solution
+
+```{r}
+#| label: ex-10-graphics
+
+ggplot(smaller, aes(x = carat, fill = cut_width(price, width = 1000))) + 
+  geom_boxplot() + 
+  labs(title = "Distribution of Carat by Price (cut_width)", 
+       x = "Carat")
+
+ggplot(smaller, aes(x = carat, fill = cut_number(price, n = 5))) + 
+  geom_boxplot() + 
+  labs(title = "Distribution of Carat by Price (cut_number)", 
+       x = "Carat")
+```
+:::
+
+### Exercise 11✅
+
+How does the price distribution of very large diamonds compare to small diamonds? Is it as you expect, or does it surprise you?
+
+::: {.callout-tip icon="false"}
+## Solution
+
+From the boxplots, it is clear that very large diamonds, the ones with higher carat, tend to have higher prices, but their price distribution shows considerable variability. The range of prices for these diamonds is wide, which aligns with my assumption that larger diamonds are typically more expensive. The level of price variability in large diamonds is somewhat surprising, suggesting other factors are heavily influencing the price beyond just carat size. Their price can change based on other factors such as cut, clarity, and color. On the other hand, smaller diamonds, the ones with lower carat, have a more compact price distribution, clustering in lower price ranges with less variability. 
+
+:::
+
+### Exercise 12✅
+  
+Use the `gg_miss_var()` function to determine which variables have missingness issues in the `flights` dataset. Use the `miss_var_summary()` to get the exact counts. If you have a lot of variables that table could get long and messy, filter out any observations in the table with no missingness.
+
+::: {.callout-tip icon="false"}
+## Solution
+```{r}
+#| label: ex-12
+# variable missingness plot
+flights |>
+  gg_miss_var()
+
+# variable missingness count
+flights |> 
+  miss_var_summary() |>
+  filter(n_miss > 0)
+```
+:::
+
+### Exercise 13✅
+
+Demonstrate the use of at least 2 other functions from the `naniar` package to visualize missingness on a dataset of your choice and describe what the functions do.
+
+::: {.callout-tip icon="false"}
+## Solution
+
+```{r}
+#| label: ex-13-missingness
+
+airquality |>
+  vis_miss() + 
+  labs(title = "Missing data in airquality dataset")
+
+airquality |>
+  gg_miss_case() + 
+  labs(title = "Missing data per case in airquality dataset")
+```
+The vis_miss() function provides an overview of missing and present values in the dataset but doesn't provide exact counts. The black lines show where the data is missing and the grey shows where the data is present. On the other hand, gg_miss_case()  visualizes the data by creating a bar chart with the amount of missing data per case or row in the dataset.
+:::
+
+### Exercise 14✅
+
+You are trying to calculate the number of flights that departed `late`, `on_time`, and `early` but can't quite seem to get your code to run correctly. The code you have written is below.
+
+Create a Reprex (reproducible example) that you would be able to post to a help site such as StackOverflow. Your solution should be the entire hypothetical post that you would make. Then provide an answer to your post.
+
+```{r}
+#| label: ex-14
+
+flights |> 
+  summarize(
+    late = sum(dep_delay > 0),
+    on_time = sum(dep_delay == 0),
+    early = sum(dep_delay < 0)
+    )
+```
+
+::: {.callout-tip icon="false"}
+
+## Question
+
+Title: R: sum() returning NA for flight delays in nycflights13
+
+Problem: I'm trying to count the sum of flights departed late, on time and early 
+in the nycflights13 dataset. However, my code is returning NA for these 
+categories. Can you please help me figure out why I am not getting the correct
+numerical output?
+
+Reproducible Example: 
+
+```{r results='markup'}
+#| label: ex14-question 
+
+reprex({
+  library(nycflights13)
+  library(dplyr)
+  flights |>
+  summarize(
+    late = sum(dep_delay > 0),
+    on_time = sum(dep_delay == 0),
+    early = sum(dep_delay < 0))
+ })
+```
+:::
+
+::: {.callout-tip icon="false"}
+## Response
+
+Hi, the issue with your code is that sum() will return NA if there are any NA 
+values in the dataset. You need to add na.rm = TRUE to remove NA values. Here is
+the updated code with the correct output.
+
+```{r results='markup'}
+#| label: ex14-response
+
+reprex({
+  library(nycflights13)
+  library(dplyr)
+  flights |>
+    summarize(
+      late = sum(dep_delay > 0, na.rm = TRUE),
+      on_time = sum(dep_delay == 0, na.rm = TRUE),
+      early = sum(dep_delay < 0, na.rm = TRUE))
+  })
+```
+:::
+
+## Case Study ✅
+
+::: {.callout-tip icon="false"}
+## Solution
+
+```{r}
+#| label: case study
+#| echo: FALSE
+
+ggplot(tinder_data, aes(x=matches)) +
+  geom_histogram(binwidth=100, fill='lightblue', color='black') +
+  scale_x_continuous(labels = scales::label_comma()) +
+  scale_y_continuous(labels = scales::label_comma()) +
+  labs(title="Distribution of Matches", x="Number of Matches", y="Frequency") +
+  theme_minimal()
+
+ggplot(tinder_data, aes(x=swipes_like, y=matches)) +
+  geom_point(alpha=0.6, color='steelblue') +
+  scale_x_continuous(labels = scales::label_comma()) +
+  scale_y_continuous(labels = scales::label_comma()) +
+  labs(title="Number of Swipes (Likes) vs. Matches", x="Number of Swipes Liked", y="Number of Matches") +
+  theme_minimal()
+
+tinder_data$swipes_pass_binned <- cut(tinder_data$swipes_pass, 
+                                      breaks=4, 
+                                      labels=c("Low", "Medium", "High", "Very High"))
+
+ggplot(tinder_data, aes(x=swipes_like, y=matches)) +
+  geom_point(alpha=0.6, color='darkorange') +
+  facet_wrap(~swipes_pass_binned) +  
+  scale_x_continuous(labels = scales::label_comma()) +
+  scale_y_continuous(labels = scales::label_comma()) +
+  labs(title="Matches vs. Swipes (Likes) Faceted by Swipes (Passes)",
+       x="Number of Swipes Liked", y="Number of Matches") +
+  theme_minimal()
+```
+Research Question: What is the relationship between the number of matches and user swiping behavior on Tinder, in terms of likes vs. passes?
+
+In the first visualization, it is clear that the most Tinder users have relatively few matches, with only a small number achieving very high match counts. Most users have between 0 and 1000 matches. This plot suggests that although some Tinder users are highly successful, the majority receive very few matches.
+
+The second scatter plot shows a positive correlation between the number of swipe likes and matches. This plot shows that users who swipe more usually receive more matches, but there is a lot of variation. Some users have a high number of matches with fewer swipes, indicating that there are other factors besides swiping right frequency that impact the amount of matches a user gets.
+
+Lastly, the faceted scatter plot shows how swipes (passes) impact match outcomes. It is clear from the plot, there is a positive relationship between swipes (likes) and matches. However, the strength of this relationship varies based on the number of swipes (passes). Users who pass fewer profiles (Low) appear to have a stronger correlation between swipes (likes) and matches compared to those who pass more profiles (Very High). This may indicate that being more selective and passing more profiles can reduce the efficiency of swipes likes in getting matches. The "Very High" pass group has fewer users achieving high matches which may suggest that passing too many profiles might limit opportunities for successful connections. Overall, swiping behavior (both likes and passes) clearly plays an important role in determining the number of matches a user can get but there are evidently more factors at play. In the future, it could beneficial to research how does user profile information such as age, gender and interests impact the number of matches they get. 
+:::
