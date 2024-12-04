@@ -1,0 +1,226 @@
+---
+title: "L03 Tidy Data"
+subtitle: "Data Science 1 with R (STAT 301-1)"
+author: "Olivia Allen"
+pagetitle: "L03 Olivia Allen"
+date: today
+
+format:
+  html:
+    toc: true
+    toc-depth: 4
+    toc-location: left
+    embed-resources: true
+    code-fold: false
+    link-external-newwindow: true
+
+execute:
+  warning: false
+
+from: markdown+emoji
+reference-location: margin
+citation-location: margin 
+---
+
+::: {.callout-tip icon=false}
+
+## Github Repo Link✅
+
+[https://github.com/stat301-1-2024-fall/L03-tidy-data-oliviaallen2003.git](https://github.com/stat301-1-2024-fall/L03-tidy-data-oliviaallen2003.git)
+
+:::
+
+## Load packages✅
+
+```{r}
+#| label: load-pkgs
+#| code-fold: false
+
+# Loading package(s)
+library(tidyverse)
+library(ggplot2)
+library(dplyr)
+library(fivethirtyeight)
+```
+
+## Datasets ✅
+
+```{r}
+#| label: load-data
+
+# Load dataset(s)
+users_top7_2020 <- read_csv("data/users_top7_2020.csv")
+```
+
+## Exercises✅
+
+### Exercise 1 ✅
+
+Recreate the plot below showing the change in cases over time using `table2`. What do you need to do first?
+
+::: {.callout-tip icon="false"}
+## Solution
+In the initial data set, table2 was in the long format and the 'type' column included two different categories, cases and population. In order to recreate the plot, you need to first reformat the data using pivot_wider() to create different columns for cases and population. 
+
+```{r}
+#| label: ex-01
+cases_data <- table2 |>
+  pivot_wider(names_from = type, values_from = count)
+
+ggplot(cases_data, aes(x = year, y = cases, group = country)) + 
+  geom_line(color = "grey50") + 
+  geom_point(aes(color = country)) + 
+  scale_x_continuous(breaks = c(1999, 2000)) + 
+  labs(x = "year", y = "cases")
+```
+:::
+### Exercise 2✅
+
+Tidy the simple tibble of [M&M](https://en.wikipedia.org/wiki/M%26M%27s) data below and drop the NA values.
+
+Do you need to make it wider or longer? What are the variables in your tidy version? What argument drops the NA values?
+
+```{r}
+#| label: ex-02
+
+# simple tibble of M&M data
+mm_data <- tribble(
+  ~mm_type, ~blue, ~orange,	~green,	~yellow, ~brown, ~red, ~cyan_blue,
+  "plain",  6,     18,      12,	    6,       7,	     7,    NA,
+  "peanut", NA,	   11,	    9,	    1,	     12,	   8,    15
+)
+```
+
+::: {.callout-tip icon="false"}
+## Solution
+
+```{r}
+#| label: ex-02-tidy
+mm_tidy <- mm_data |>
+  pivot_longer(cols = -mm_type, names_to = "color", values_to = "count") |>
+  drop_na()
+
+mm_tidy
+```
+The dataset needs to be made longer. The original dataset is in wide format where each color has its own column. The dataset can be made longer using pivot_longer() so that each variable can have its own column. The variables in my tidy version are mm_type which is type of M&M, color which is the color of each M&M and count, which is the count for each type and color. The drop_na function is used to drop the NA values from the dataset.  
+:::
+
+### Exercise 3✅
+
+Use `table4a` and **only** the `pivot_longer` function to recreate the following:
+
+::: {.callout-tip icon="false"}
+## Solution
+
+```{r}
+#| label: ex-03
+table4a |>
+  pivot_longer(cols = c('1999', '2000'),
+               names_to = "year", 
+               values_to = "cases")
+```
+:::
+
+### Exercise 4✅
+
+Use the `drinks` dataset and **only** the `pivot_longer` function to recreate the following:
+
+::: {.callout-tip icon="false"}
+## Solution
+
+```{r}
+#| label: ex-04
+drinks %>%
+ pivot_longer(
+   cols = c(beer_servings, spirit_servings, wine_servings),
+   names_to = "type",
+   values_to = "servings",
+   names_pattern = "(.*)_servings"
+ )
+```
+:::
+
+### Exercise 5✅
+
+What happens if you use `pivot_wider()` on this table so that we have a dataset with 3 columns (`respondent_name`, `age`, `height`) and why? 
+
+Fix the issue by adding a new column.
+
+```{r}
+#| label: ex-05
+#| eval: false
+
+# dataset/table
+people <- tribble(
+  ~respondent_name,  ~key,    ~value,
+  #-----------------|--------|------
+  "Phillip Woods",   "age",       45,
+  "Phillip Woods",   "height",   186,
+  "Phillip Woods",   "age",       50,
+  "Jessica Cordero", "age",       37,
+  "Jessica Cordero", "height",   156
+)
+```
+
+::: {.callout-tip icon="false"}
+## Solution
+When you use pivot_wider() on this table to create a dataset with 3 columns (`respondent_name`, `age`, `height`), it results in an error because the data for Phillip Woods has two conflicting values for age. The function will use one unique value for each respondent_name and key but because Phillip Woods has two different ages, R doesn't know which one to use. 
+
+
+```{r}
+#| label: ex-05-tidy
+people_fixed <- tribble(
+  ~respondent_name,   ~key,     ~value,  ~time,
+  "Phillip Woods",    "age",    45,       "t1",
+  "Phillip Woods",    "height", 186,      "t1", 
+  "Phillip Woods",    "age",    50,       "t2",
+  "Jessica Cordero",  "age",    37,       "t1",
+  "Jessica Cordero",  "height", 156,      "t1"
+)
+
+people_fixed |>
+  pivot_wider(
+    names_from = key,
+    values_from = value
+  )
+```
+:::
+
+## Case Study✅
+
+::: {.callout-tip icon="false"}
+## Solution
+
+```{r}
+#| label: casestudy
+#| code-fold: TRUE
+
+users_top7_2020$user_number <- paste("User", 1:7)
+
+longer_data <- users_top7_2020 |>
+  pivot_longer(
+    cols = starts_with("matches_") | starts_with("likes_") | starts_with("passes_"),
+    names_to = c("metric", "month"),
+    names_sep = "_",
+    values_to = "value"
+  )
+
+longer_data$month <- as.numeric(longer_data$month)
+
+ggplot(longer_data, aes(x = month, y = value, color = metric)) + 
+  geom_line() + 
+  facet_wrap(~user_number, scales = "free_x") + 
+  labs(
+    title = "Tinder Top 7 Users in 2020",
+    x = "Month",
+    y = "Count",
+    color = "Activity Type"
+  ) + 
+  scale_x_continuous(
+    breaks = 1:12,
+    labels = c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
+  ) + 
+  theme_minimal()
+```
+From these graphs, there are valuable insights about the behavior of Tinder's top 7 users in 2020. User 2 and User 3 have very high spikes in passes, during March and April, that significantly outnumber their matches and likes. This suggests that during these months, these users were more selective or active as they rejected a much higher number of profiles. Furthermore, User 1, User 2 and User 7 display consistent swiping activity during this year as they have very minimal variation in their matches, likes and passes. This suggests that these users were more consistent in their engagement with the app, without sharp increases or decreases in their selectivity or activity.Despite being among the most active users, match rates remain relatively low for all users. Across all users, passes generally outnumber matches which may indicate that the top users were pretty selective overall. 
+:::
