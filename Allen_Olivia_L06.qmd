@@ -1,0 +1,235 @@
+---
+title: "L06 Logicals and Numbers"
+subtitle: "Data Science 1 with R (STAT 301-1)"
+author: "Olivia Allen"
+pagetitle: "L06 Olivia Allen"
+date: today
+
+format:
+  html:
+    toc: true
+    toc-depth: 4
+    toc-location: left
+    embed-resources: true
+    code-fold: false
+    link-external-newwindow: true
+
+execute:
+  warning: false
+
+from: markdown+emoji
+reference-location: margin
+citation-location: margin  
+---
+
+::: {.callout-tip icon=false}
+
+## Github Repo Link✅
+
+[https://github.com/stat301-1-2024-fall/L06-logicals-and-numbers-oliviaallen2003.git](https://github.com/stat301-1-2024-fall/L06-logicals-and-numbers-oliviaallen2003.git)
+
+:::
+
+## Load packages✅
+
+```{r}
+#| label: load-pkgs
+#| code-fold: false
+
+# Loading package(s)
+library(tidyverse)
+library(nycflights13)
+
+# load case study
+college_rankings <- read_csv("data/college_rankings.csv")
+cr_codebook <- read.csv("data/college_rankings_codebook.csv")
+```
+
+## Exercises✅
+
+### Exercise 1 ✅
+
+Use `mutate()`, `is.na()`, and `count()` together to describe how the missing values in `dep_time`, `scheduled_dep_time`, and `dep_delay` are connected.
+
+::: {.callout-tip icon="false"}
+## Solution
+
+```{r}
+#| label: ex-1
+
+flights |>
+  mutate(
+    dep_time = is.na(dep_time),
+    sched_dep_time = is.na(sched_dep_time),
+    dep_delay = is.na(dep_delay), 
+  ) |>
+  count(dep_time, sched_dep_time, dep_delay)
+```
+As shown in the results printed above, 328,521 flights have complete data for dep_time, sched_dep_time and dep_delay. However, 8,255 flights have missing dep_time and dep_delay while sched_dep_time is present which may indicate these flights did not depart and were likely cancelled. This pattern shows that when dep_time is missing, dep_delay is also missing suggesting that a flight that did not depart cannot have a recorded delay even if there was a scheduled departure time.
+
+:::
+
+### Exercise 2✅
+
+Find all flights where `arr_delay` is missing, but `dep_delay` is not. Also, find all flights where neither `arr_time` nor `sched_arr_time` is missing, but `arr_delay` is.
+
+::: {.callout-tip icon="false"}
+## Solution
+
+```{r}
+#| label: ex-2
+
+flights |>
+  filter(is.na(arr_delay) & !is.na(dep_delay))
+
+flights |>
+  filter(!is.na(arr_time) & !is.na(sched_arr_time) & is.na(arr_delay))
+```
+:::
+
+### Exercise 3✅
+
+How many flights have a missing `dep_time`? What other variables are missing in these rows? What might these rows represent?
+
+::: {.callout-tip icon="false"}
+## Solution
+
+```{r}
+#| label: ex-3
+
+flights |>
+  filter(is.na(dep_time)) |>
+  summarise(across(everything(), ~sum(is.na(.))))
+```
+
+
+There are 8,255 flights with a missing dep_time. This tibble shows that among the rows with missing dep_time, they also have missing values for dep_delay, arr_time, arr_delay, and air_time, indicating that flights without a recorded departure time do not have any delay, arrival, or air time data. Due to the fact that these flights did not spend any time in the air, these variables are not applicable. Additionally, 2,512 of these rows are missing the tailnum. This suggests that suggests that while some of these canceled flights may have had an assigned aircraft, others were likely not assigned an airplane. This tibble implies that these rows likely represent canceled flights that never took off. 
+
+:::
+
+### Exercise 4✅
+
+What will `sum(is.na(x))` tell you? How about `mean(is.na(x))`?
+
+::: {.callout-tip icon="false"}
+## Solution
+
+```{r}
+#| label: ex-4
+
+# Example vector 
+x <- c(5, 9, 12, 45, NA, 32, NA)
+
+sum(is.na(x))
+
+mean(is.na(x))
+```
+
+As shown in the output, sum(is.na(x)) returned 2 which shows there are 2 missing values in the vector called x. The mean(is.na(x)) returned 0.29 which shows that 29% of the vector consists of missing values. Sum(is.na(x)) will show the amount of missing values in x, while mean(is.na(x)) will tell you the proportion of missing values in x. 
+
+:::
+
+### Exercise 5✅
+
+A number is even if it’s divisible by two, which in R you can find out with `x %% 2 == 0`. Use this fact and `if_else()` to determine whether each number between 0 and 20 is even or odd.
+
+::: {.callout-tip icon="false"}
+## Solution
+
+```{r}
+#| label: ex-5
+if_else(0:20 %% 2 == 0, "Even", "Odd")
+```
+
+:::
+
+### Exercise 6✅
+
+Replace the following calls to `count()` to instead use `group_by()`, `summarize()`, and `arrange()`:
+
+`flights |> count(dest, sort = TRUE)`
+
+`flights |> count(tailnum, wt = distance)`
+
+::: {.callout-tip icon="false"}
+## Solution
+
+```{r}
+#| label: ex-6
+
+flights |>
+  group_by(dest) |>
+  summarize(n = n()) |>
+  arrange(desc(n))
+
+flights |>
+  group_by(tailnum) |>
+  summarize(n = sum(distance, na.rm = TRUE)) |>
+  arrange(tailnum)
+```
+:::
+
+### Exercise 7✅
+
+a. For each destination, compute the total minutes of delay. 
+b. For each flight, compute the proportion of the total delay for each of its destinations.
+
+::: {.callout-tip icon="false"}
+## Solution
+
+```{r}
+#| label: ex-7-a
+flights |>
+  group_by(dest) |>
+  summarize(total_arr_delay = sum(arr_delay, na.rm = TRUE))
+```
+
+```{r}
+#| label: ex-7-b
+flights |>
+  filter(arr_delay > 0) |>
+  summarise(
+    total_arr_delay = sum(arr_delay),
+    .by = c(flight, dest)
+  ) |>
+  mutate(
+    prop_arr_delay = total_arr_delay / sum(total_arr_delay),
+    .by = flight
+  ) |>
+  arrange(flight)
+```
+
+:::
+
+## Case Study✅
+
+::: {.callout-tip icon="false"}
+## Solution
+
+```{r}
+#| label: case-study
+# Using case_when() to group states
+colleges_ranked <- college_rankings |>
+  mutate(region = case_when(
+    state_abbr %in% c("CT", "ME", "MA", "NH", "NJ", "NY", "PA", "RI", "VT") ~ "Northeast",
+   state_abbr %in% c("IL", "IN", "IA", "KS", "MI", "MN", "MO", "NE", "ND", "OH", "SD", "WI") ~ "Midwest",
+   state_abbr %in% c("AL", "AR", "DE", "DC", "FL", "GA", "KY", "LA", "MD", "MS", "NC", "OK", "SC", "TN", "TX", "VA", "WV") ~ "South",
+   state_abbr %in% c("AK", "AZ", "CA", "CO", "HI", "ID", "MT", "NV", "NM", "OR", "UT", "WA", "WY") ~ "West",
+   TRUE ~ "Unknown"
+  )) |>
+  
+# Using if_else() to change public variable
+mutate(public = if_else(public == "public", TRUE, FALSE)) |>
+
+# Using cut() to categorize overall_score
+mutate(overall_score_category = cut(rank_2023,
+                                      breaks = seq(0, 1100, by = 10),
+                                      labels = seq(0, 1090, by = 10),
+                                      right = FALSE)) |>
+# Round tuition fees
+mutate(tuition_fees_rounded = round(tuition_fees, -3)) |>
+  select(-tuition_fees)
+
+print((colleges_ranked), width = Inf)
+```
+:::
