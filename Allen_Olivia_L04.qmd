@@ -1,0 +1,311 @@
+---
+title: "L04 Data Import"
+subtitle: "Data Science 1 with R (STAT 301-1)"
+author: "Olivia Allen"
+pagetitle: "L04 Olivia Allen"
+date: today
+
+format:
+  html:
+    toc: true
+    toc-depth: 4
+    toc-location: left
+    embed-resources: true
+    code-fold: false
+    link-external-newwindow: true
+
+execute:
+  warning: false
+
+from: markdown+emoji
+reference-location: margin
+citation-location: margin 
+---
+
+::: {.callout-tip icon=false}
+
+## Github Repo Link✅
+
+[https://github.com/stat301-1-2024-fall/L04-data-import-oliviaallen2003.git](https://github.com/stat301-1-2024-fall/L04-data-import-oliviaallen2003.git)
+
+:::
+
+## Load packages✅
+
+```{r}
+#| label: load-pkgs
+#| code-fold: false
+
+# Loading package(s)
+library(tidyverse)
+```
+
+## Exercises✅
+
+### Exercise 1✅
+
+Demonstrate how to read in `TopBabyNamesByState.txt` contained in the `data` sub-directory using the appropriate function from the `readr` package. After reading in the data, determine the top male and female names in 1984 for South Dakota.
+
+::: {.callout-tip icon="false"}
+## Solution
+
+```{r}
+#| label: ex1
+
+# reading data
+baby_names <- read_delim("data/TopBabyNamesByState.txt", delim = NULL)
+
+# filtering data
+sd_1984 <- baby_names |>
+  filter(state == "SD", year == 1984)
+
+top_male <- sd_1984 |>
+  filter(gender == "M") |>
+  slice_max(occurences, n = 1)
+
+top_female <- sd_1984 |>
+  filter(gender == "F") |>
+  slice_max(occurences, n =1)
+
+top_male
+top_female
+```
+:::
+
+### Exercise 2✅
+
+Consider `read_csv()` and `read_tsv()`. When would you use each function?
+Apart from `file`, `skip`, and `comment`, what other arguments do they have in common?
+
+::: {.callout-tip icon="false"}
+## Solution
+
+read_csv() is used when working csv files where the data is separated by commas. On the other hand, read_tsv() is used for reading tsv files where the data is separated by tabs. This format is usually used for large datasets. Apart from file, skip and comment, there are other arguments that these two functions share. Both of these functions have col_names which allows you to specify the names of columns. They also have col_types which allows you define the data type for each column.
+:::
+
+### Exercise 3✅
+
+What are the most important arguments to `read_fwf()`?
+
+```{r}
+#| label: ex-3
+
+# Column names.
+column_names <- c(
+  "Entry", "Per.", "Post Date", "GL Account", "Description", "Srce.", 
+  "Cflow", "Ref.", "Post", "Debit", "Credit", "Alloc."
+  )
+```
+
+::: {.callout-tip icon="false"}
+## Solution
+```{r}
+#| label: ex-3-column-widths
+
+column_widths <- c(6, 4, 12, 12, 30, 5, 4, 10, 3, 18, 20, 8)
+
+fwf_data <- read_fwf(
+  file = "data/fwf_example.txt",
+  col_positions = fwf_widths(
+    widths = column_widths,
+    col_names = column_names
+  ),
+    skip = 2,
+  col_types = cols(.default = col_character())
+)
+```
+The most important arguments for read_fwf() include file, which is used to describe 
+the file path, col_positions, which defines the column widths and col_types, which sets the data types for the columns. 
+:::
+
+### Exercise 4✅
+
+Practice referring to non-syntactic names in the following data frame by:
+
+```{r}
+#| label: ex-4
+
+# toy dataset
+annoying <- tibble(
+  `1` = 1:10,
+  `2` = `1` * 2 + rnorm(length(`1`))
+)
+```
+
+::: {.callout-tip icon="false"}
+## Solution
+
+```{r}
+#| label: ex-4-referring
+
+# a. Extracting the variable called 1.
+annoying$`1`
+
+#b. Plotting a scatterplot of 1 vs 2.
+ggplot(annoying, aes(x = `1`, y = `2`)) + 
+  geom_point() + 
+  labs(x = "1", y = "2", title = "Scatterplot of 1 vs. 2")
+
+#c. Creating a new column called 3 which is 2 divided by 1.
+annoying_3 <- annoying |>
+  mutate(`3` = `2` / `1`)
+annoying_3
+
+#d. Renaming the columns to one, two and three.
+annoying_final <- annoying_3 |>
+  rename(one = `1`, two = `2`, three = `3`)
+annoying_final
+```
+:::
+
+### Exercise 5✅
+
+Demonstrate how to manually input the data table below into R using each of these functions:
+
+-   `tibble()`
+-   `tribble()`
+
+| price | store   | ounces |
+|-------|---------|--------|
+| 3.99  | target  | 128    |
+| 3.75  | walmart | 128    |
+| 3.00  | amazon  | 128    |
+
+::: {.callout-tip icon="false"}
+## Solution
+
+```{r}
+#| label: ex-5
+
+data_tibble <-tibble(
+  price = c(3.99, 3.75, 3.00),
+  store = c("target", "walmart", "amazon"),
+  ounces = c(128, 128, 128)
+)
+
+data_tribble <- tribble(
+  ~price, ~store,   ~ounces,
+   3.99,  "target",  128,
+   3.75,  "walmart", 128,
+   3.00,  "amazon",  128
+)
+
+data_tibble
+data_tribble
+```
+
+:::
+
+### Exercise 6✅
+
+What function in `janitor` helps you deal with non-syntactic column names in R and also ensures column names are systematically handled? Demonstrate its use.
+
+::: {.callout-tip icon="false"}
+## Solution
+The function in the janitor package that helps deal with non-syntactic column names and ensure column names are systematically handled is clean_names(). 
+```{r}
+#| label: ex-6
+
+example_tibble <- tibble(
+  `First Name` = c("Mary", "Jane", "Cameron"),
+  `Last.Name` = c("Lee", "Brown", "Allen")
+)
+
+example_tibble |>
+  janitor::clean_names()
+```
+:::
+
+### Exercise 7✅
+
+1. Start by committing and pushing your current work to GitHub! 
+1. Then download the `cc-est2016-alldata.csv` file from Canvas and add it to the `data` subdirectory. **Do not commit!** We need to add the file to the `.gitignore` file first.
+1. **Add `cc-est2016-alldata.csv` to the .gitignore** file. That is, add `data/cc-est2016-alldata.csv` to the file with an appropriate header. If the file has been added (meaning ignored) correctly, it will NOT appear in the Git pane to commit --- may need to refresh the pane. 
+1. Once the file is successfully ignored, commit with the comment "large data ignored!"
+
+Now that you have taken care of the large file issue, read the file in and just print the first 5 observations.
+
+::: {.callout-note collapse=true}
+## Oh no, I commited a large file!
+:::
+
+::: {.callout-tip icon="false"}
+## Solution
+```{r}
+#| label: ex-7
+
+read.csv("data/cc-est2016-alldata.csv") |>
+  as_tibble() |>
+  slice_head(n = 5)
+```
+:::
+
+## Case Study✅
+
+-   Read in the `tinder_data`
+
+-   Is `tinder_data` a `tibble` and how do you know?
+
+-   For the variable `user_interested_in`, use the `if_else()` function to change "M and F" to "B" for both. 
+
+-   Convert `user_gender` and `user_interested_in` into factor variables.
+
+-   Write out a copy of the clean dataset to the `data` sub-directory as a csv file named `tinder_clean.csv`.
+
+-   Write out a copy of the clean dataset to the `data` sub-directory as an RDS file named `tinder_clean.rds`.
+
+-   Read both `tinder_clean.csv` and `tinder_clan.rds` back into R. Explore the two data frame objects and list the differences between the two. When might writing out to one file type (csv or rds) be more beneficial than the other?
+
+::: {.callout-tip icon="false"}
+## Solution
+
+```{r}
+#| label: case-study1
+
+# Read in the `tinder_data`
+tinder_data <- read_csv("data/tinder_data.csv")
+```
+```{r}
+#| label: case-study2
+
+# Is `tinder_data` a `tibble` and how do you know?
+is_tibble(tinder_data)
+```
+tinder_data is a tibble because I used the function is_tibble() to check if it is a tibble and this returned TRUE.
+
+```{r}
+#| label: case-study3 
+# For the variable `user_interested_in`, use the `if_else()` function to change "M and F" to "B" for both. 
+tinder_data <- tinder_data |>
+  mutate(user_interested_in = if_else(user_interested_in == "M and F", "B", user_interested_in))
+```
+
+```{r}
+#| label: case-study4
+# Convert `user_gender` and `user_interested_in` into factor variables
+tinder_data$user_gender <- as.factor(tinder_data$user_gender)
+tinder_data$user_interested_in <- as.factor(tinder_data$user_interested_in)
+```
+
+
+```{r}
+#| label: case-study5
+# Write out a copy of the clean dataset to the `data` sub-directory as a csv file named `tinder_clean.csv`.
+write_csv(tinder_data, "data/tinder_clean.csv")
+```
+
+```{r}
+#| label: case-study6
+# Write out a copy of the clean dataset to the `data` sub-directory as an RDS file named `tinder_clean.rds`.
+saveRDS(tinder_data, "data/tinder_clean.rds")
+```
+
+```{r}
+#| label: case-study7
+# Read both `tinder_clean.csv` and `tinder_clan.rds` back into R. Explore the two data frame objects and list the differences between the two. When might writing out to one file type (csv or rds) be more beneficial than the other?
+new_csv <- read.csv("data/tinder_clean.csv")
+new_rds <- readRDS("data/tinder_clean.rds")
+```
+The CSV file stores all variables as plain text and in this file type factors are not preserved. CVS is the more portable option and typically compatible with different software. The RDS file contains all the original properties of the data frame and this file type preserves factors. When you need to keep specific data types, RDS is the better option. CSV is beneficial when moving data across different platforms and RDS is generally better for working just within R.
+:::
+
