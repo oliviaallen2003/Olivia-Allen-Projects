@@ -1,0 +1,40 @@
+---
+title: "Executive Summary"
+subtitle: |
+  | Final Project 
+  | Data Science 1 with R (STAT 301-1)
+author: "Olivia Allen"
+date: today
+pagetitle: "Executive Summary Olivia Allen"
+
+format:
+  html:
+    toc: true
+    toc-depth: 4
+    toc-location: left
+    embed-resources: true
+    link-external-newwindow: true
+
+execute:
+  warning: false
+
+from: markdown+emoji
+reference-location: margin
+citation-location: margin
+---
+
+# Purpose and Dataset 
+
+This report examines how various song attributes such as tempo, danceability, energy, and title/artist name lengths impact the popularity of songs on Spotify. Using a dataset of over 110,000 songs sourced from Kaggle, this analysis explores patterns and relationships that influence listener preferences and the success of songs in terms of popularity. The findings offer particularly valuable insights for marketers and music industry professionals who want to create strategies that better resonate with audiences.
+
+# Key Findings
+
+My analysis of tempo revealed that most songs cluster around moderate tempos (110–130 BPM), reflecting mainstream preferences. While tempo alone does not strongly predict popularity across all genres, there were genre-specific trends. In Hip-Hop, slower tempos (60–70 BPM) and very fast tempos (200–220 BPM) were associated with higher popularity. This is consistent with Hip-hop sub-genres that focus on slow lyricism and intense energy. In contrast, slower tempos were slightly more favored in Pop and significantly more favored in Rock, which was surprising given these genres' associations with high-energy tracks. These findings also suggest that tempo interacts with other factors to shape listener appeal and should be further investigated. 
+
+Danceability and energy both had strong individual effects on popularity, with higher levels of each leading to increased popularity. However, their combined impact revealed an unexpected result: when both danceability and energy were simultaneously high, their combined effect on popularity became negative. This suggests that overly high levels of these attributes may overwhelm listeners; this highlights the need for balance in crafting engaging music. These results show the complexity of listener preferences and the importance of considering multiple factors when analyzing the success of a song.
+
+My analysis of song titles and artist name lengths confirmed the importance of brevity. Shorter song titles (0–20 characters) and shorter artist names (0–15 characters) were associated with higher popularity. Longer titles and names negatively influenced popularity, especially when combined. This emphasizes the value of concise and memorable names in the music industry. These findings align with the industry’s focus on marketability and memorable names for songs and artists.
+
+# Conclusion and Recommendations
+In conclusion, some findings aligned with expectations, like the preference for shorter titles and moderate tempos, while others, like the negative combined effect of high danceability and energy, were surprising. These results show just how complex the relationship is between song attributes and listener preferences.
+Future research should explore additional factors, like lyrics, cultural or regional differences, and audience demographics, to further understand what drives popularity. These insights could help streaming platforms and marketers develop data-driven strategies to better connect with listeners and ensure greater success in the music industry.
