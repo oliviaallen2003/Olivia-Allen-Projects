@@ -1,0 +1,290 @@
+---
+title: "L10 Joins & Missingness"
+subtitle: "Data Science 1 with R (STAT 301-1)"
+author: "Olivia Allen"
+pagetitle: "L10 Olivia Allen"
+date: today
+
+format:
+  html:
+    toc: true
+    toc-depth: 4
+    toc-location: left
+    embed-resources: true
+    code-fold: false
+    link-external-newwindow: true
+
+execute:
+  warning: false
+
+from: markdown+emoji
+reference-location: margin
+citation-location: margin  
+---
+
+::: {.callout-tip icon=false}
+
+## Github Repo Link✅
+[https://github.com/stat301-1-2024-fall/L10-joins-missingness-oliviaallen2003.git](https://github.com/stat301-1-2024-fall/L10-joins-missingness-oliviaallen2003.git)
+
+:::
+
+## Load packages & data✅
+
+You should always begin by loading all necessary packages towards the beginning of your document.
+
+```{r}
+#| label: load-pkgs-data
+
+library(dplyr)
+library(tidyverse)
+library(nycflights13)
+library(fueleconomy)
+
+rankings_2021 <- read_rds("data/rankings_2021.rds")
+rankings_2022 <- read_rds("data/rankings_2022.rds")
+```
+
+## Exercises
+
+### Exercise 1 ✅
+
+Describe in your own words what the functions `left_join`, `right_join`, `inner_join`, and `full_join` accomplish.
+
+::: {.callout-tip icon="false"}
+## Solution
+
+The left_join() function keeps all rows from the left dataset, adding matches from the right, with unmatched rows in the left filled with NA. Right_join() keeps all rows from the right dataset, adding matches from the left, with unmatched rows in the right filled with NA. The inner_join() returns only rows with matching keys in both datasets, excluding non-matching rows. Full_join() retains all rows from both datasets, merging matches and filling NA for unmatched rows in either dataset.
+:::
+
+### Exercise 2✅
+
+A relationship between `nycflights13::weather` and `nycflights13::airports` is possible. Describe the relationship using appropriate primary/foreign key vocabulary for relational data.
+
+
+::: {.callout-tip icon="false"}
+## Solution
+The relationship between nycflights13::weather and nycflights13::airports is established through the use of airport codes as a shared identifier between the two datasets. In airports, the faa column serves as the primary key, uniquely identifying each airport. In weather, the origin column acts as a foreign key, referencing the faa column in the airports dataset. This connection enables the linking of weather data recorded at specific times to the corresponding airport details. By joining these datasets on origin and faa, you can combine weather observations with additional information about the airports, such as their names, locations, and other metadata. This forms a one-to-many relationship, where each airport can have multiple weather records, but each weather observation is associated with only one airport. This linkage is essential for analyses that require contextualizing weather data within the scope of specific airport characteristics.
+:::
+
+### Exercise 3✅
+
+What weather conditions make it more likely to see a departure delay?
+
+::: {.callout-tip icon="false"}
+## Solution
+
+```{r}
+#| label: ex-03
+weather_relative_risk <- flights |>
+  inner_join(weather, by = c("origin", "year", "month", "day", "hour")) |>
+  mutate(is_delayed = dep_delay > 0) |>
+  group_by(precip > 0, visib < 5, wind_speed > 15) |>
+  summarise(
+    delay_rate = mean(is_delayed, na.rm = TRUE),
+    n = n(),
+    .groups = "drop"
+  ) |>
+  arrange(desc(delay_rate))
+
+weather_relative_risk
+```
+Based on this analysis, departure delays are more likely to happen under weather conditions of precipitation, low visibility, less than 5 miles, and high wind speeds, greater than 15 mph.
+:::
+
+
+### Exercise 4✅
+
+What does `anti_join(flights, airports, by = c("dest" = "faa"))` tell you? 
+
+What does `anti_join(airports, flights, by = c("faa" = "dest"))` tell you?
+
+::: {.callout-tip icon="false"}
+## Solution
+
+```{r}
+#| label: ex-04
+missing_airports_in_flights <- anti_join(flights, airports, by = c("dest" = "faa"))
+missing_airports_in_flights
+
+unused_airports <- anti_join(airports, flights, by = c("faa" = "dest"))
+unused_airports
+```
+`anti_join(flights, airports, by = c("dest" = "faa"))` identifies flights with destination airports that are not listed in the airports dataset. There are 7,602 rows where the destination airport code in the flights dataset does not match any FAA code in the airports dataset. This may be missing data for airports. 
+
+`anti_join(airports, flights, by = c("faa" = "dest"))` identifies airports that are not destinations in the flights dataset. There are 1,357 rows where airports in the airports dataset are not referenced as destinations in the flights dataset. This may be airports that are no longer operational.
+:::
+
+### Exercise 5✅
+
+Combine `fueleconomy::vehicles` and `fueleconomy::common` to find the records for only the most common models.
+
+::: {.callout-tip icon="false"}
+## Solution
+
+```{r}
+#| label: ex-05
+common_vehicles <- vehicles |>
+  inner_join(common, by = "model") 
+
+head(common_vehicles)
+```
+:::
+
+## Case Study 1✅
+
+### Exploration 1✅
+
+a) What types of explicit missingness exists in `rankings_2021` and `rankings_2022`, if any?
+b) What types of implicit missingness exists in `rankings_2021` and `rankings_2022`, if any?
+c) What is the "key" and is it a primary, compound primary, foreign, or surrogate key?
+
+
+::: {.callout-tip icon="false"}
+## Solution
+
+```{r}
+#| label: explicit-2021
+missing_2021 <- colSums(is.na(rankings_2021))
+missing_2021
+```
+
+```{r}
+#| label: explicit-2022
+missing_2022 <- colSums(is.na(rankings_2022))
+missing_2022
+```
+For both rankings 2021 and rankings 2022, there is explicit missingness for tuition fees, room and board, salary after 10 years, resources score, engagement score, outcomes score and environment score. 
+
+
+```{r}
+#| label: implicit-2022
+all_combinations <- expand.grid(
+  institution = unique(c(rankings_2021$institution, rankings_2022$institution)),
+  year = c(2021, 2022)
+)
+
+rankings_combined <- all_combinations |>
+  left_join(rankings_2021 |>
+              mutate(year = 2021), by = c("institution", "year")) |>
+  left_join(rankings_2022 |>mutate(year = 2022), by = c("institution", "year")) |>
+  arrange(institution, year)
+
+implicit_missing <- rankings_combined |>
+  filter(is.na(rank_2021) & year == 2021 | is.na(rank_2022) & year == 2022)
+
+implicit_missing
+```
+Marian University (Indiana), United States Military Academy and Westminster College (Missouri) are present in the rankings for one year but missing in the rankings for the other. This reflects implicit missingness because these institutions are absent and do not have rows in one year when their data is expected. 
+
+
+```{r}
+#| label: key-check
+nrow(rankings_2021) == n_distinct(rankings_2021$institution)
+nrow(rankings_2022) == n_distinct(rankings_2022$institution)
+```
+
+The key in rankings_2021 and rankings_2022 is the institution column because it uniquely identifies each record based on the name of the university/college. It is a primary key because there are no duplicates of college names as shown in the output above.
+
+:::
+
+### Exploration 2✅
+
+Combine `rankings_2021` and `rankings_2022` to answer the following questions:
+
+a) Which colleges had tuition increase the most from 2021 to 2022?
+b) Only considering colleges ranked in the top 400, which college increased the most in ranking from 2021 to 2022?
+c) Which colleges were ranked in 2021 but not ranked in 2022? which colleges were ranked in 2022 but not ranked in 2021?
+
+
+::: {.callout-tip icon="false"}
+## Solution
+
+```{r}
+#| label: tuiton-increase
+tuition_comparison <- rankings_2021 |>
+  select(institution, tuition_fees_2021 = tuition_fees) |>
+  inner_join(
+    rankings_2022 |>
+      select(institution, tuition_fees_2022 = tuition_fees), 
+    by = "institution"
+  ) |>
+  mutate(
+    tuition_increase = tuition_fees_2022 - tuition_fees_2021
+  ) |>
+  arrange(desc(tuition_increase))
+
+tuition_comparison
+```
+Columbia University had tuition increase the most from 2021 to 2022 with a $7153 increase. 
+
+```{r}
+#| label: ranking-increase
+
+rank_comparison <- rankings_2021 |>
+  select(institution, rank_2021) |>
+  inner_join(
+    rankings_2022 |> 
+      select(institution, rank_2022), 
+    by = "institution"
+  ) |>
+  filter(rank_2021 <= 400 & rank_2022 <= 400) |>
+  mutate(ranking_increase = rank_2021 - rank_2022) |>
+  arrange(desc(ranking_increase))
+
+rank_comparison |> head(1)
+```
+Among the colleges ranked in the top 400, Colorado State University, Fort Collins increased the most in ranking from 2021 to 2022 as they climbed by 60 ranks. 
+
+```{r}
+#| label: dropped-ranks
+
+ranked_2021_not_2022 <- rankings_2021 |>
+  anti_join(rankings_2022, by = "institution") |>
+  select(institution, rank_2021)
+
+ranked_2022_not_2021 <- rankings_2022 |>
+  anti_join(rankings_2021, by = "institution") |>
+  select(institution, rank_2022)
+
+ranked_2021_not_2022
+ranked_2022_not_2021
+```
+Westminster College (Missouri) and Marian University (Indiana) were ranked in 2021 but not 2022. 
+United States Military Academy was ranked in 2022 but not in 2021. 
+:::
+
+## Case Study 2✅
+
+Add a new variable called `year` which has the value of `2021` for each observation of `rankings_2021` and the value of `2022` for each observation of `rankings_2022`. Then use `bind_rows()` to combine `rankings_2021` and `rankings_2022`.
+
+When might you use `bind_rows` or `bind_cols` instead of a `join`?
+
+::: {.callout-tip icon="false"}
+## Solution
+
+```{r}
+#| label: combined-rankings
+rankings_2021 <- rankings_2021 |>
+  mutate(
+    resources_score = as.numeric(resources_score),      
+    engagement_score = as.numeric(engagement_score),    
+    outcomes_score = as.numeric(outcomes_score),      
+    environment_score = as.numeric(environment_score), 
+    year = 2021                                   
+  )
+
+rankings_2022 <- rankings_2022 |>
+  mutate(
+    resources_score = as.numeric(resources_score),    
+    engagement_score = as.numeric(engagement_score),    
+    outcomes_score = as.numeric(outcomes_score),     
+    environment_score = as.numeric(environment_score), 
+    year = 2022                                        
+  )
+
+combined_rankings <- bind_rows(rankings_2021, rankings_2022)
+combined_rankings
+```
+bind_rows() or bind_cols() might be used instead of join when you are combing datasets that share the same structure but do not requiring merging based on a key. bind_rows() can be used for appending rows from datasets with the same columns. bind_cols() can be used to combine datasets side by side when they have the same number of rows but different columns. Joins will match datasets based on a shared key while bind_rows() and bind_cols() will concatenate datasets without merging them with a specific variable. 
+:::
