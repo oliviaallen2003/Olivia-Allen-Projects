@@ -1,0 +1,457 @@
+---
+title: "L07 Strings & Regex"
+subtitle: "Data Science 1 with R (STAT 301-1)"
+author: "Olivia Allen"
+pagetitle: "L07 Olivia Allen"
+date: today
+
+format:
+  html:
+    toc: true
+    toc-depth: 4
+    toc-location: left
+    embed-resources: true
+    code-fold: false
+    link-external-newwindow: true
+
+execute:
+  warning: false
+
+from: markdown+emoji
+reference-location: margin
+citation-location: margin  
+---
+
+::: {.callout-tip icon=false}
+
+## Github Repo Link✅
+
+[https://github.com/stat301-1-2024-fall/L07-strings-regex-oliviaallen2003.git](https://github.com/stat301-1-2024-fall/L07-strings-regex-oliviaallen2003.git)
+
+:::
+
+## Load packages✅
+
+```{r}
+#| label: load-pkgs
+
+# Loading package(s)
+library(stringr)
+library(tidyverse)
+library(htmlwidgets)
+library(stringi)
+library(babynames)
+```
+
+
+## Load data ✅
+
+```{r}
+#| label: load-data
+tinder <- read_csv("data/tinder_profile.csv")
+```
+
+## Exercises✅
+
+### Exercise 1✅
+
+Create strings that contain the following values:
+
+1. `He said "That's amazing!"`
+
+2. `\a\b\c\d`
+
+3. `\\\\\\`
+
+::: {.callout-tip icon="false"}
+## Solution
+```{r}
+#| label: ex-1
+string1 = 'He said "That\'s amazing!"'
+string2 = "\\a\\b\\c\\d"
+string3 = "\\\\\\\\\\\\"
+
+str_view(string1)
+str_view(string2)
+str_view(string3)
+```
+:::
+
+### Exercise 2✅
+
+Compare and contrast the results of `paste0()` with `str_c()` for the following inputs:
+
+```{r}
+#| label: ex-2-given-code
+#| eval: false
+str_c("hi ", NA)
+str_c(letters[1:2], letters[1:3])
+```
+    
+::: {.callout-tip icon="false"}
+## Solution
+
+```{r}
+#| label: ex-2
+paste0("hi ", NA)
+paste0(letters[1:2], letters[1:3])
+```
+For paste0("hi ", NA), the output is "hi NA" and paste0() treats NA as a string. str_c("hi ", NA) returns NA since str_c() keeps NA unless you set na.rm = TRUE. paste0(letters[1:2], letters[1:3]) outputs "aa", "bb", "ca" because it recycles the shorter vector to match the length of the longer one. str_c(letters[1:2], letters[1:3]) will throw an error because this function requires all vectors to be the same length.
+:::
+
+### Exercise 3✅
+
+What's the difference between `paste()` and `paste0()`?
+How can you recreate the equivalent of `paste()` with `str_c()`?
+
+::: {.callout-tip icon="false"}
+## Solution
+
+```{r}
+#| label: ex-3
+paste("Hi", "what's", "up")
+paste0("Hi", "what's", "up")
+str_c("Hi", "what's", "up", sep = " ")
+```
+Paste() concatenates strings and the default creates a space between each string. Paste0() concatenates strings without a space to separate them. By adding sep = " " to str_c(), you can recreate the output of paste() and it will add a space to separate strings.
+:::
+
+### Exercise 4✅
+
+Write a sentence that contains a Greek letter.
+
+::: {.callout-tip icon="false"}
+## Solution
+
+```{r}
+#| label: ex-4
+sentence <- "My favorite day of the year is \U03C0 day which is March 14th."
+str_view(sentence)
+```
+:::
+
+### Exercise 5✅
+
+Use `str_length()` and `str_sub()` to extract the middle letter from each baby name, use data `babynames::babynames`. What will you do if the string has an even number of characters?
+
+::: {.callout-tip icon="false"}
+## Solution
+```{r}
+#| label: ex5
+babynames |>
+  mutate(
+    l_name = str_length(name),
+    middle_letter = if_else(
+      l_name %% 2 == 1, 
+      str_sub(name, ceiling(l_name / 2), ceiling(l_name / 2)),
+      str_sub(name, l_name / 2, l_name / 2 + 1)
+    )
+  ) |>
+  select(name, middle_letter)
+```
+If the name has an odd number of characters, we take the character at the exact middle position. However, if the name has an even number of characters, we return the two middle characters instead.
+:::
+
+### Exercise 6✅
+
+Using `babynames::babynames`, what baby name has the most vowels? What name has the highest proportion of vowels?
+
+::: {.callout-tip icon="false"}
+## Solution
+
+```{r}
+#| label: ex6
+baby_vowel <- babynames |> 
+  mutate(
+    length = str_length(name),
+    vowel_ct = str_count(name, "[aeiouAEIOU]"),
+    vowel_prop = vowel_ct / length
+  )
+
+most_vowels <- baby_vowel |> 
+  filter(vowel_ct == max(vowel_ct)) |> 
+  select(name, vowel_ct) |> 
+  distinct()
+
+highest_vowel_prop <- baby_vowel |> 
+  filter(vowel_prop == max(vowel_prop)) |> 
+  select(name, vowel_prop) |> 
+  distinct()
+
+most_vowels
+highest_vowel_prop
+```
+Mariaguadalupe and Mariadelrosario have the most vowels, both with 8. Eua, Ea, Ai, Ia, Io, Aoi, Aia, and Ii all have the highest proportion of vowels, all having a proportion of 1. 
+:::
+
+### Exercise 7✅
+
+Implement a simple version of `str_to_lower()` using `str_replace_all()`.
+
+::: {.callout-tip icon="false"}
+## Solution
+
+```{r}
+#| label: ex7
+lowercase <- function(string) {
+  replacements <- setNames(letters, LETTERS)
+  str_replace_all(string, replacements)
+}
+
+lowercase("HELLO World!")
+```
+:::
+
+### Exercise 8✅
+
+Create a regular expression that will match telephone numbers as commonly written in your country. Demonstarte a case when it matches and one where it doesn't match (an improper phone number).
+
+::: {.callout-tip icon="false"}
+## Solution
+
+```{r}
+#| label: ex8
+
+x <- c("123-456-7890", "1235-2351", "aa5bb5")
+phone_regex <- "^\\d{3}-\\d{3}-\\d{4}$"
+matches <- str_detect(x, phone_regex)
+
+print(x[matches])
+```
+
+:::
+
+### Exercise 9✅
+
+How would you match the literal string `"'\`? How about `"$^$"`?
+
+::: {.callout-tip icon="false"}
+## Solution
+
+```{r}
+#| label: ex9
+str_view("\"'\\", "\"'\\\\")
+str_view('"$^$"', '"\\$\\^\\$"')  
+```
+:::
+
+### Exercise 10✅
+
+Explain why each of these patterns don't match a `\`: 
+
+a. `"\"` 
+b. `"\\"`
+c. `"\\\"`.
+
+::: {.callout-tip icon="false"}
+## Solution
+
+The first pattern is an escape character. In R, the backslash signals the start of an escape sequence, so R expects another character to follow the backslash. Because there is no character after the backlack, this causes a syntax error, and the pattern is incomplete.
+
+The second pattern doesn’t match a backslash in regex because the two backslashes are interpreted as a single literal backslash in the string. To match a literal backslash in regex, four backslashes are needed. The first two create one literal backslash in R, and the next two escape the backslash for regex.
+
+The third pattern is an incomplete expression because the last backslash attempts to escape the closing quote. This leaves the expression unfinished, causing an escape sequence error.
+:::
+
+### Exercise 11✅ 
+
+Given the corpus of common words in `stringr::words`, create regular expressions that find all words that:
+
+a.  Start with "y".
+b.  Don't start with "y".
+c.  End with "x".
+d.  Are exactly three letters long. (Don't cheat by using `str_length()`!)
+e.  Have seven letters or more.
+f.  Contain a vowel-consonant pair.
+g.  Contain at least two vowel-consonant pairs in a row.
+h.  Only consist of repeated vowel-consonant pairs.
+
+::: {.callout-tip icon="false"}
+## Solution
+
+```{r}
+#| label: ex11a
+
+words_tibble <- tibble(
+  word = stringr::words
+)
+
+words_tibble |>
+  filter(str_detect(word, "^y"))
+```
+
+
+```{r}
+#| label: ex11b
+words_tibble |>
+  filter(!str_detect(word, "^y"))
+```
+
+
+```{r}
+#| label: ex11c
+words_tibble |>
+  filter(str_detect(word, "x$"))
+```
+
+
+```{r}
+#| label: ex11d
+words_tibble |>
+  filter(str_detect(word, "^\\w{3}$"))
+```
+
+```{r}
+#| label: ex11e
+words_tibble |>
+  filter(str_detect(word, "^\\w{7,}$"))
+```
+
+
+```{r}
+#| label: ex11f
+words_tibble |>
+  filter(str_detect(word, "[aeiou][bcdfghjklmnpqrstvwxyz]"))
+```
+
+```{r}
+#| label: ex11g
+words_tibble |>
+  filter(str_detect(word, "([aeiou][bcdfghjklmnpqrstvwxyz]){2,}"))
+```
+
+```{r}
+#| label: ex11h
+words_tibble |>
+  filter(str_detect(word, "^([aeiou][bcdfghjklmnpqrstvwxyz])+$"))
+```
+
+:::
+
+### Exercise 12✅
+
+Describe in words what these regular expressions match. 
+
+a.  `^.*$`
+b.  `"\\{.+\\}"`
+c.  `\d{4}-\d{2}-\d{2}`
+d.  `"\\\\{4}"`
+e.  `\..\..\..`
+f.  `(.)\1\1`
+g.  `"(..)\\1"`
+    
+::: {.callout-tip icon="false"}
+## Solution
+
+a. This is a regular expression that matches any string because ^ denotes the start of the line, .* matches any sequence of characters including none and $ denotes the end of a line. 
+
+b. This is a string in R that creates a regex pattern to match anything within curly braces {}. The double "\\" will become a single backlash in the regex and the .+ matches one or more character. 
+
+c. This is a regular expression that matches dates in the format YYYY-MM-DD. The first section of this expression will match four digits for the year, both of the - will match a literal hyphen, the second section matches two digits for the month and the last section matches two digits for the day. 
+
+d. This is a string in R that creates a regex pattern and matches 4 backslash characters. The four backslashes in R become two backslashes in the regex and the "{4}" specified the backlash appears exactly 4 times.
+
+e. This is a regular expression that matches any single characters separated by 3 literal periods. The backslash with the dot matches a literal period and the each following . matches any single character. 
+
+f. This is a regular expression that matches any character repeated three times. (.) captures any character and "\1\1" matches that character 2 more times. 
+
+g. This is a string in R that creates a regex pattern and matches any two characters repeated twice. (..) captures two characters and "\\\\1" indicates that two characters will be repeated.
+:::
+
+### Exercise 13✅
+
+For each of the following challenges, try solving it by using both a single regular expression, and a combination of multiple `str_detect()` calls.
+
+a. Find all `words` that start or end with `x`.
+b. Find all `words` that start with a vowel and end with a consonant.
+c. Are there any `words` that contain at least one of each different vowel?
+
+::: {.callout-tip icon="false"}
+## Solution
+
+```{r}
+#| label: ex13a
+
+words_tibble <- tibble(
+  word = stringr::words
+)
+
+words_tibble |>
+  filter(str_detect(word, "^x|x$"))
+
+words_tibble |>
+  filter(str_detect(word, "^x") | str_detect(word, "x$"))
+```
+
+
+```{r}
+#| label: ex13b
+words_tibble |>
+  filter(str_detect(word, "^[aeiou].*[^aeiou]$"))
+
+words_tibble |>
+  filter(str_detect(word, "^[aeiou]") & str_detect(word, "[^aeiou]$"))
+```
+
+```{r}
+#| label: ex13c
+words_tibble |>
+  filter(str_detect(word, "a.*e.*i.*o.*u"))
+
+words_tibble |>
+  filter(str_detect(word, "a") & 
+           str_detect(word, "e") & 
+           str_detect(word, "i") &
+           str_detect(word, "o") & 
+           str_detect(word, "u"))
+```
+There are not any words with all vowels. 
+:::
+
+### Exercise 14✅
+
+Construct patterns to find evidence for and against the rule "i before e except after c"?
+
+::: {.callout-tip icon="false"}
+## Solution
+
+```{r}
+#| label: ex14
+
+words_tibble <- tibble(
+  word = stringr::words
+)
+
+words_tibble |>
+  filter(str_detect(word, "(?<!c)ie|cei"))
+
+words_tibble |>
+  filter(str_detect(word, "(?<!c)ei"))
+```
+In the first table, there are words like "achieve," "believe," "client," "field," and "piece," which contain "ie" sequences which aligns with the rule. We also see in this table, "receive" which aligns with the rule that "ei" will only occur after c. However, in the second table, there are words like "eight," "either," and "weigh" which show instances where "ei" appear without a "c" in front, going against the rule. This shows that most words likely conform to the rule but there are a few exceptions.
+:::
+
+## Case Study✅
+
+- Obtain the count of users that display their `school` on their profile
+- Obtain the count of users that display their `job` on their profile
+
+::: {.callout-tip icon="false"}
+## Solution
+
+
+```{r}
+#| label: case-study
+school_display_count <- tinder |> 
+  filter(str_detect(schools, "\"displayed\":true")) |> 
+  summarize(count = n())
+
+title_display_count <- tinder |> 
+  filter(str_detect(jobs, "\"titleDisplayed\":true")) |> 
+  summarize(count = n())
+
+school_display_count
+title_display_count
+```
+There are 489 users display their `school` on their profile. There are 421 users display their `job` title on their profile. 
+:::
