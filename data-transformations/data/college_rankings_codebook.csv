@@ -1,0 +1,30 @@
+Variables,Meaning
+unitid,unique ID
+fed_sch_code,Federal School Code
+institution,Name of the College/University
+state_abbr,State in which the institution is located (including DC)
+city,City in which the institution is located
+rank_2023,Times Higher Education Rank (1 best)
+public,Whether the institution is public or private
+tuition_fees,Cost of tuition and fees
+room_board,Cost of room and board
+avg_net_price,Average net price is the amount that a student pays to attend an institution in a single academic year AFTER subtracting scholarships and grants the student receives
+salary_after_10,Average salary 10 years after graduation
+overall_score,Overall score from Times Higher Education
+resources_score,Resources score from Times Higher Education (out of 30)
+engagement_score,Engagement score from Times Higher Education (out of 20)
+outcomes_score,Outcomes score from Times Higher Education (out of 40)
+environment_score,Environment score from Times Higher Education (out of 10)
+accept_rate,acceptance rate
+act_median,Median ACT score of admitted students
+sat_avg,Average SAT score of admitted students
+ug_enrolled,Count of enrolled undergraduate students
+grad_enrolled,Count of enrolled graduate students
+retention_rate,"First-time, full-time student retention rate"
+ug_student_loan_pct,Percent of undergraduate students receiving a federal student loan
+ug_men_pct,Percent of undergraduate students that are men
+ug_women_pct,Percent of undergraduate students that are women
+student_faculty_ratio,Student to faculty ratio
+faculty_full_time_pct,Percent of faculty that are employed full time
+faculty_women_pct,Percent of faculty that are women
+faculty_men_pct,Percent of faculty that are men
