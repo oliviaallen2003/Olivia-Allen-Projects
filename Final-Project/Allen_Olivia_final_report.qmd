@@ -1,0 +1,413 @@
+---
+title: "Final Report"
+subtitle: |
+  | Final Project 
+  | Data Science 1 with R (STAT 301-1)
+author: "Olivia Allen"
+date: today
+pagetitle: "Final Report Olivia Allen"
+
+format:
+  html:
+    toc: true
+    toc-depth: 4
+    toc-location: left
+    embed-resources: true
+    link-external-newwindow: true
+
+execute:
+  warning: false
+
+from: markdown+emoji
+reference-location: margin
+citation-location: margin
+---
+
+::: {.callout-tip icon="false"}
+## Github Repository 
+[https://github.com/stat301-1-2024-fall/final-project-1-oliviaallen2003.git](https://github.com/stat301-1-2024-fall/final-project-1-oliviaallen2003.git)
+:::
+
+```{r echo = FALSE}
+#| label: load-packages-and-data
+library(tidyverse)
+library(readr)
+library(stringr)
+library(knitr)
+
+spotify_cleaned <- read_csv("data/spotify_clean.csv")
+spotify_data <- read_csv("data/raw/spotify.csv")
+```
+
+## Introduction
+
+This project explores how various song attributes influence popularity of tracks on Spotify. My initial questions included: Are more danceable songs generally more popular? and How do tempo and energy interact across different genres? These curiousities came from my academic background as a Data Science minor and Integrated Marketing Communications Certificate student. I believe the insights from this analysis could guide marketers and streaming platforms in optimizing user engagement and creating data-driven strategies for music promotion. My data comes from the Spotify Tracks dataset which is a csv file I sourced from Kaggle. This dataset contains detailed information about Spotify tracks, such as energy, tempo, danceability, loudness, and popularity.
+
+## Data Overview
+
+```{r echo = FALSE}
+#| label: tbl-data-summary
+summary_table <- tibble(
+  Metric = c("Number of Observations", "Number of Variables"),
+  Value = c(nrow(spotify_cleaned), ncol(spotify_cleaned))
+)
+
+summary_table |> kable(caption = "Summary of Spotify Dataset")
+```
+
+```{r echo = FALSE}
+#| label: tbl-variable-type
+variable_type_summary <- tibble(
+  Type = sapply(spotify_cleaned, function(col) class(col)[1])
+) |>
+  count(Type, name = "Count")
+
+variable_type_summary |> kable(caption = "Summary of Variable Types in Spotify Dataset")
+```
+
+The Spotify Tracks dataset is complex collection of Spotify song data with 110,353 observations and 21 variables, as shown in @tbl-data-summary. The variable types include 5 character, 1 logical and 15 numeric variables as shown in @tbl-variable-type. Each observation corresponds to a unique song which is identified by its track id, a combination of letters and numbers.
+
+## Data Quality
+
+```{r echo = FALSE}
+#| label: tbl-missingness-before-final
+missing_before <- colSums(is.na(spotify_data))
+missing_before |> 
+  kable(caption = "Missingness in Dataset Before Cleaning")
+```
+
+As shown in @tbl-missingness-before-final, missingness wasn't a large issue as there were only missing values for album_name, track_name, and artists columns, each with one missing value. 
+
+```{r echo = FALSE}
+#| label: tbl-non-ascii-1-or-more
+non_ascii_counts_one_or_more <- tibble(
+  column = c("artists", "album_name", "track_name"),
+  `Values with 1+ non-ASCII characters` = c(
+    sum(str_detect(spotify_data$artists, "[^[:ascii:]]"), na.rm = TRUE),
+    sum(str_detect(spotify_data$album_name, "[^[:ascii:]]"), na.rm = TRUE),
+    sum(str_detect(spotify_data$track_name, "[^[:ascii:]]"), na.rm = TRUE)
+  ),
+  `Total Values in Column` = c(
+    nrow(spotify_data),
+    nrow(spotify_data),
+    nrow(spotify_data)
+  ),
+  proportion = c(
+    sum(str_detect(spotify_data$artists, "[^[:ascii:]]"), na.rm = TRUE) / nrow(spotify_data),
+    sum(str_detect(spotify_data$album_name, "[^[:ascii:]]"), na.rm = TRUE) / nrow(spotify_data),
+    sum(str_detect(spotify_data$track_name, "[^[:ascii:]]"), na.rm = TRUE) / nrow(spotify_data)
+  )
+)
+
+non_ascii_counts_one_or_more |> 
+  kable(caption = "Values with 1 or more non-ASCII characters")
+```
+While missingness was not an issue, a large number of values in this dataset had non-ASCII characters, as shown in @tbl-non-ascii-1-or-more. These characters are not part of the standard ASCII character set, which only includes basic letters, digits and symbols used in English. For example, "„Éû„Éõ„É≠„Éú„Ç∑„É§", is a value that contains non-ASCII characters and is impossible to understand. The non-ASCII characters were addressed by removing values with these characters in the three columns they showed up: artists, album_name and track_name. I detected these characters using a regular expression, replaced them with NA and then removed all rows with NA from my dataset. I created a csv file with the cleaned dataset and called it spotify_cleaned.csv. 
+
+## Tempo
+
+My first research question is: How does tempo impact the popularity of songs across certain genres? I am particularly interested in Hip-Hop, Pop and Rock which are some of the most popular genres. Tempo plays a significant role in defining the style and mood of a song. Understanding tempo's influence on popularity within specific genres can reveal preferences within these sub-groups. 
+
+```{r echo = FALSE}
+#| label: fig-tempo-distribution
+
+spotify_filtered <- spotify_cleaned |>
+  filter(tempo > 0 & tempo < 230)
+
+ggplot(spotify_filtered, aes(x = tempo)) +
+  geom_density(fill = "lightblue", alpha = 0.7) +
+  labs(title = "Distribution of Tempo Across All Songs",
+       x = "Tempo (BPM)",
+       y = "Density") +
+  theme_minimal()
+```
+
+```{r echo = FALSE}
+#| label: tbl-tempo-summary
+
+tempo_stats <- spotify_filtered |>
+  summarise(
+    Mean = mean(tempo, na.rm = TRUE),
+    Median = median(tempo, na.rm = TRUE),
+    Min = min(tempo, na.rm = TRUE),
+    Max = max(tempo, na.rm = TRUE),
+    SD = sd(tempo, na.rm = TRUE)
+  )
+
+tempo_stats |> 
+  kable(caption = "Tempo Statistics Across All Songs")
+```
+@fig-tempo-distribution illustrates the overall distribution across all songs which is roughly normal. Most tempos cluster around 110-130 BPM. @tbl-tempo-summary reinforces this showing that the mean tempo is 122.2 BPM, the median is 122.0 and the standard deviation is 29.6 which is relatively moderate. The minimum value of 30.2 BPM and maximum of 222.6 reflects the wide range of tempos in the dataset. The distribution indicates that most songs fall within a moderate tempo range. This is not surprising because moderate tempos are often preferred in popular music. 
+
+```{r echo = FALSE}
+#| label: fig-popularity-tempo
+
+spotify_filtered <- spotify_filtered |>
+  mutate(tempo_bin = cut(tempo, breaks = seq(0, 250, by = 10), include.lowest = TRUE))
+
+ggplot(spotify_filtered, aes(x = tempo_bin, y = popularity)) +
+  geom_boxplot(fill = "lightblue", color = "darkblue", alpha = 0.7) +
+  labs(title = "Popularity Across Tempo",
+       x = "Tempo (BPM)",
+       y = "Popularity") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+@fig-popularity-tempo illustrates that the median popularity across tempo bins remains relatively consistent, typically between 20 to 35. This suggests that tempo alone does not strongly influence a song's popularity, as songs across all tempo ranges achieve similar median popularity levels. This finding challenges assumptions that faster tempos might drive higher popularity. However, songs with lower tempos tend to have slightly lower median popularity scores, as do those with very high tempos. This indicates that songs with moderate tempos may hit a sweet spot and are generally a bit more popular. Additionally, the variability within bins, as indicated by the wide interquartile ranges, suggests that tempo interacts with other factors in determining success. 
+
+```{r echo = FALSE}
+#| label: fig-tempo-by-genre
+
+tempo_genre_summary <- spotify_filtered |> 
+  filter(track_genre %in% c("hip-hop", "pop", "rock")) |>
+  mutate(tempo_bin = cut(tempo, breaks = seq(0, 250, by = 10), include.lowest = TRUE)) |>  
+  group_by(track_genre, tempo_bin) |> 
+  summarise(mean_popularity = mean(popularity, na.rm = TRUE), .groups = "drop") |>  
+  na.omit() 
+
+ggplot(tempo_genre_summary, aes(x = tempo_bin, y = mean_popularity, color = track_genre, group = track_genre)) +
+  geom_line(size = 1) +
+  geom_point(size = 2) +
+  facet_grid(track_genre ~ .) +
+  labs(title = "Mean Popularity by Tempo Bins Across Genres",
+       x = "Tempo (BPM)",
+       y = "Mean Popularity") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  theme(legend.position = "none")
+```
+
+```{r echo = FALSE}
+#| label: tbl-correlations-by-genre
+
+for (genre in c("hip-hop", "pop", "rock")) {
+genre_data <- spotify_cleaned |> filter(track_genre == genre)
+  model <- lm(popularity ~ tempo, data = genre_data)
+  coef_summary <- as.data.frame(summary(model)$coefficients)
+  colnames(coef_summary) <- c("Estimate", "SE", "t-value", "p-value")
+  print(
+    kable(
+      coef_summary,
+      caption = paste("Linear Model Results Tempo predicting Popularity in", genre),
+      col.names = c("Estimate", "SE", "t-value", "p-value"),
+      digits = 3,
+      align = "c"
+    )
+  )
+}
+```
+To understand how tempo influences popularity within these genres, I analyzed Hip-Hop, Pop, and Rock in @fig-tempo-by-genre and @tbl-correlations-by-genre. For Hip-Hop, the line graph shows that songs are most popular at slow tempos (60–70 BPM) and very fast tempos (200–220 BPM). These trends align with expectations, with slower hip-hop songs emphasizing lyricism and faster beats delivering high energy. The linear model for tempo predicting popularity in hip-hop indicates a slight positive relationship between tempo and popularity (coefficient = 0.042). However, this effect is not statistically significant (p = 0.236). This is not surprising, as tempo alone is unlikely to determine popularity in a genre.
+
+In Pop, mean popularity remains consistent across tempo bins, as seen in the line graph. This lack of strong patterns is expected, given Pop's versatility in catering to a wide audience. The linear model @tbl-correlations-by-genre reveals a significant negative relationship between tempo and popularity (coefficient = -0.119, p = 0.001). This suggests that slower tempos are slightly more favored, which is somewhat surprising, as faster tempos are often associated with energetic and catchy Pop tracks. For Rock, the line graph shows that slower tempos (60–70 BPM) are significantly more popular, while very fast tempos (200–210 BPM) are less popular. This result is unexpected, as mainstream Rock often has higher-energy tempos. @tbl-correlations-by-genre confirms a significant negative relationship between tempo and popularity (coefficient = -0.112, p = 0.001). These findings suggest that slower tempos, such as those in ballads or acoustic Rock, may appeal to a niche audience within this genre.
+
+Overall, @fig-tempo-distribution and @tbl-tempo-summary show that most songs cluster around moderate tempos (110–130 BPM), which aligns with mainstream music preferences. @fig-popularity-tempo demonstrates relatively stable median popularity across tempos, which is surprising and challenges assumptions about tempo's direct influence. Lastly, @fig-tempo-by-genre and @tbl-correlations-by-genre reveal genre-specific trends: Hip-hop's peaks in popularity at slow and fast tempos, Pop has popularity across tempos, and Rock has a surprising preference for slower tempos. These findings highlight the need for future analysis to understand relationships between tempo and other factors that may impact a song's success. 
+
+
+## Danceability
+
+My second research question is: How does danceability correlate with popularity and energy across tracks? Danceability is an important part of music because it is often associated with how engaging and rhythmic a song is for listeners. Understanding its relationship with other factors like energy provides valuable insights into what makes a song engaging and well-liked. 
+
+```{r echo = FALSE}
+#| label: fig-danceability-distribution
+ggplot(spotify_cleaned, aes(x = danceability)) + 
+  geom_histogram(bins = 20, color = "black", fill = "blue", alpha = 0.7) + 
+  labs(title = "Distribution of Song Danceability",
+       x = "Danceability", 
+       y = "Frequency") + 
+  theme_minimal()
+```
+```{r echo = FALSE}
+#| label: tbl-danceability-summary
+danceability_stats <- spotify_cleaned |>
+  summarise(
+    Mean = mean(danceability, na.rm = TRUE),
+    Median = median(danceability, na.rm = TRUE),
+    Min = min(danceability, na.rm = TRUE),
+    Max = max(danceability, na.rm = TRUE),
+    Std_Dev = sd(danceability, na.rm = TRUE)
+  )
+
+danceability_stats |> 
+  kable(caption = "Danceability Statistics")
+```
+@fig-danceability-distribution shows that the distribution of danceability across all songs is slightly right-skewed, with most values between 0.4 and 0.8. This suggests most songs have moderate to high danceability. This is expected because many songs are created with the intention of being danceable and engaging for their listeners. @tbl-danceability-summary reinforces these insights, showing that the mean and median values of danceability are roughly 0.6, and most songs fall into the moderate-to-high danceability range. The relatively small standard deviation of 0.175 also reflects a narrow spread of values, aligning with the peak observed in the histogram. The minimum value of 0 is a valid score for danceability and the maximum value of 0.985 shows that no song within the dataset has a perfect score for danceability.
+
+```{r echo = FALSE}
+#| label: fig-danceability-vs-popularity
+spotify_cleaned$danceability_bin <- cut(
+  spotify_cleaned$danceability, 
+  breaks = seq(0, 1, by = 0.1), 
+  include.lowest = TRUE
+)
+
+ggplot(spotify_cleaned, aes(x = danceability_bin, y = popularity)) +
+  geom_boxplot(fill = "lightgreen", color = "darkgreen") +
+  labs(title = "Popularity by Danceability Bin", x = "Danceability", y = "Popularity") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+@fig-danceability-vs-popularity examines the relationship between popularity and danceability. The boxplots show a weak positive trend revealing that the median popularity increases slightly with higher danceability. However, this trend is not strong or linear, as the median danceability stops increasing after [0.6, 0.7]. These plots also show that popularity has high variability at all levels of danceability which is expected given the large dataset. It might be expected that songs with higher danceability would generally be more popular, however, the weak trend suggests that danceability does not strongly dictate popularity. Other factors likely contribute to determining whether a song becomes widely liked.
+
+```{r echo = FALSE}
+#| label: fig-danceability-popularity-energy
+spotify_cleaned <- spotify_cleaned |>
+  mutate(
+    danceability_bin = cut(danceability, breaks = seq(0, 1, by = 0.1), include.lowest = TRUE),
+    energy_bin = cut(energy, breaks = seq(0, 1, by = 0.1), include.lowest = TRUE)
+  )
+
+heatmap_data <- spotify_cleaned |>
+  group_by(danceability_bin, energy_bin) |>
+  summarize(mean_popularity = mean(popularity, na.rm = TRUE))
+
+ggplot(heatmap_data, aes(x = danceability_bin, y = energy_bin, fill = mean_popularity)) +
+  geom_tile(color = "white") +
+  scale_fill_gradient(low = "lightblue", high = "darkblue", na.value = "white") +
+  labs(
+    title = "Mean Popularity by Danceability and Energy",
+    x = "Danceability",
+    y = "Energy",
+    fill = "Mean Popularity"
+  ) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+```{r echo = FALSE}
+#| label: tbl-correlations-danceability
+
+lm_danceability_energy <- lm(popularity ~ danceability * energy, data = spotify_cleaned)
+
+kable(
+  summary(lm_danceability_energy)$coefficients,
+  caption = "Linear Model: Impact of Danceability and Energy on Popularity",
+  col.names = c("Coefficient", "SE", "t-value", "p-value"),
+  digits = 3
+)
+```
+
+@fig-danceability-popularity-energy provides valuable insights into how danceability and energy interact to impact a song’s popularity. The top-right corner of the heatmap highlights that songs with both high danceability and high energy correspond to the highest mean popularity, as shown by the darker blue cells. This outcome aligns with expectations, as energetic and rhythmic songs tend to resonate strongly with listeners. In contrast, the bottom-left corner, with lighter blue cells, represents songs with low danceability and low energy, which have the lowest mean popularity. These findings reinforce the idea that rhythm and energy are essential components of engaging music.
+
+However, there is an expected pattern in the bottom-right corner, where songs with high danceability but low energy still show higher mean popularity. This challenges the assumption that high energy is always necessary for popular, danceable songs and suggests that other factors might play a significant role in their success. Songs in the mid-range for both danceability and energy generally have moderate popularity, supporting the idea that these two features complement each other to enhance a song’s appeal. However, the exceptions in the heatmap indicate that danceability and energy are important but not sufficient on their own to determine popularity. This highlights the need for more exploration of other contributing variables.
+
+To further analyze the relationships between danceability, energy, and popularity, I made a linear model @tbl-correlations-danceability. Danceability has a significant positive relationship with popularity, with a coefficient of 20.940 and a p-value of < .001. Energy also shows a significant positive effect, with a coefficient of 12.734 and a p-value of < .001. However, the combined effect (danceability × energy) is negative, with a coefficient of -27.039 and a p-value of < .001. This indicates that when both attributes increase simultaneously, their combined impact may reduce popularity. These results suggest that overly high levels of both attributes may overwhelm listeners. Future explorations should look into how other factors, such as tempo or lyrics, interact with danceability and energy to further influence a song's success.
+
+## Song Titles
+
+My final research question is: How do lengths of song titles and artist names correlate with popularity? Song titles and artist names are integral components of a track’s identity. Titles often influence listeners' first impressions and the marketability of a song. Artist names also contribute to branding and recognition. By examining the interplay between title length, artist name length and popularity, we can uncover potential patterns that shape a song’s success.
+
+```{r echo = FALSE}
+#| label: fig-title-distribution
+
+spotify_cleaned <- spotify_cleaned |> 
+  mutate(title_length = nchar(track_name)) |>
+  filter(title_length <= 100)
+
+ggplot(spotify_cleaned, aes(x = title_length)) +
+  geom_histogram(binwidth = 10, fill = "dodgerblue", color = "white", alpha = 0.8) +
+  labs(
+    title = "Distribution of Song Title Lengths",
+    x = "Title Length (Characters)",
+    y = "Frequency"
+  ) +
+  xlim(0, 100)
+```
+
+```{r echo = FALSE}
+#| label: tbl-title-summary
+
+title_stats <- spotify_cleaned |> 
+  summarise(
+    Mean = mean(title_length, na.rm = TRUE),
+    Median = median(title_length, na.rm = TRUE),
+    Min = min(title_length, na.rm = TRUE),
+    Max = max(title_length, na.rm = TRUE),
+    SD = sd(title_length, na.rm = TRUE)
+  )
+
+title_stats |> 
+  kable(caption = "Table 8: Song Title Length Statistics")
+```
+
+@fig-title-distribution shows the distribution of song title lengths after filtering titles to a maximum of 100 characters. There were only a few values that exceeded 100 characters and might be data entry errors. The histogram reveals a strong left-skew, with most songs having short titles under 25 characters. This is not surprising because concise titles are easier to remember and market. @tbl-title-summary further supports this showing that the mean title length is 18 and the median is 15 characters. The standard deviation of 12.4 suggests moderate variability. The minimum of 1 character is expected but the maximum of 100 is surprising as some might expect there to be a limit on song title length. The large amount of shorter titles might reflect the preference in the music industry for brief titles. 
+
+```{r echo = FALSE}
+#| label: fig-title-popularity
+
+spotify_cleaned <- spotify_cleaned |>
+  mutate(title_length_bin = cut(title_length, breaks = seq(0, 100, by = 5), include.lowest = TRUE))
+  
+ggplot(spotify_cleaned, aes(x = title_length_bin, y = popularity)) +
+  geom_boxplot(fill = "lightblue", color = "darkblue", alpha = 0.7) +
+  labs(title = "Popularity Across Song Title Lengths",
+       x = "Title Length (Characters)",
+       y = "Popularity") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+@fig-title-popularity illustrates the relationship between song title length in characters and popularity. This graph reveals that the median popularity slightly declines as song title length increases. Shorter titles have slightly higher median popularity while longer titles beyond 40 characters show a gradual decrease in popularity. This is somewhat expected as songs that are mainstream tend to have titles that can fit on a car radio screen. Interestingly, longer titles show greater variability in IQR suggesting that while some longer titles have high popularity, others have significantly low popularity. The higher variability indicates that these titles may be more polarizing than shorter ones. These findings suggest that shorter titles may have a slight advantage but title alone may not be a strong determinant of a song's popularity. 
+
+```{r echo = FALSE}
+#| label: fig-title-heatmap
+
+spotify_cleaned <- spotify_cleaned |> 
+  mutate(
+    title_length = nchar(track_name),
+    artist_name_length = nchar(artists)
+  )
+
+spotify_lengths <- spotify_cleaned |> 
+  mutate(
+    title_length_bin = cut(title_length, breaks = seq(0, 100, by = 10), include.lowest = TRUE),
+    artist_length_bin = cut(artist_name_length, breaks = seq(0, 50, by = 5), include.lowest = TRUE)
+  ) |> 
+  filter(!is.na(title_length_bin), !is.na(artist_length_bin)) |> 
+  group_by(title_length_bin, artist_length_bin) |> 
+  summarise(mean_popularity = mean(popularity, na.rm = TRUE), .groups = "drop")
+
+ggplot(spotify_lengths, aes(x = title_length_bin, y = artist_length_bin, fill = mean_popularity)) +
+  geom_tile(color = "white") +
+  scale_fill_viridis_c(name = "Mean Popularity") +
+  labs(
+    title = "Popularity by Title and Artist Name Length",
+    x = "Song Title Length",
+    y = "Artist Name Length"
+  ) +
+  theme_minimal()
+```
+
+```{r echo = FALSE}
+#| label: tbl-lm1
+lm_model <- lm(popularity ~ title_length * artist_name_length, data = spotify_cleaned)
+
+kable(
+  summary(lm_model)$coefficients,
+  caption = "Linear Model: Popularity as a Function of Title & Artist Name Length",
+  col.names = c("Estimate", "SE", "t-value", "p-value"),
+  digits = 3
+)
+```
+@fig-title-heatmap shows how both song title length and artist name length affects popularity. Titles that are short 0–20 characters and paired with short artist names 0–15 characters are associated with the highest mean popularity; this is shown in the brighter regions of the heatmap. On the other hand, combinations of long titles greater than 70 characters and long artist names less than 30 characters consistently result in lower popularity; this is indicated by the darker regions. This aligns with expectations because excessively long titles and names are less likely to be memorable or marketable.
+
+Moreover, the linear model results in @tbl-lm1 quantifies the relationships. The coefficient for title_length is -0.057, indicating that for each additional character in a song title, the predicted popularity decreases by 0.057 units. This is statistically significant, with a p-value less than 0.001, showing strong evidence that longer titles are likely associated with lower popularity. The coefficient for artist_name_length is 0.006, suggesting that longer artist names have a small positive effect on popularity. However, this relationship is not statistically significant because the p-value is 0.473. This indicates that artist name length does not have a meaningful impact on popularity by itself. The combined effect of title length and artist name length has a coefficient of -0.002. This indicates that for every one-character increase in both title and artist name length, the predicted popularity decreases by 0.002 units. This combined impact is highly significant, with a p-value less than 0.001, showing that the interaction of these two factors plays an important role in determining popularity. 
+
+This exploration reveals a strong preference for shorter titles and names in driving popularity. These findings also emphasize the importance of balancing brevity and creativity in names to make songs more marketable and highly appealing. Future exploration could look at how these patterns vary across genres or cultural contexts, because certain styles of music may show different preferences. 
+
+## Conclusion 
+
+This report explored the relationships between various song attributes such as tempo, danceability, energy, and song/artist name lengths and their impact on popularity, providing valuable insights into what factors might influence the success of tracks on Spotify.
+
+My first analysis revealed that tempo alone does not strongly influence popularity across genres. In Hip-Hop, tempo trends aligned with expectations, where slower tempos emphasize lyricism and faster tempos deliver energy. However, in Pop and Rock, slower tempos were surprisingly associated with higher popularity, particularly for Rock, which typically favors faster tempos. These findings suggest that tempo's role in determining popularity is genre-dependent and interacts with other factors. 
+
+My second analysis of danceability and energy uncovered significant individual contributions of these attributes to popularity, but their combined effect revealed a nuanced relationship. While higher levels of both danceability and energy are generally associated with increased popularity, the interaction between the two showed that excessively high levels of both could reduce popularity. This was surprising and highlights the complexity of how these attributes influence listener preferences. 
+
+My final analysis confirmed a preference for brevity, as shorter titles and names were associated with higher popularity. The negative combined effect of longer titles and names further emphasized the importance of concise and memorable identifiers for songs and artists. This was expected, as marketability often depends on simplicity and recognizability.
+
+While some findings were expected, for example the preference for shorter song titles and the general popularity of moderate tempos, others were surprising. The significant negative combined impact of high danceability and energy and the preference for slower tempos in Pop and Rock challenge common assumptions about what makes a song appealing. Future work could explore additional factors, such as lyrical content or audience demographics to better understand these trends. Investigating how these relationships vary across different cultural contexts or regions could also provide deeper insights. Overall, this analysis highlights the complexity of musical success and reveals the importance of balancing various attributes to appeal to listeners.
+
+## References
+
+Pandya, Maharshi. (2024). Spotify Tracks Dataset. Kaggle.
+[https://www.kaggle.com/datasets/maharshipandya/-spotify-tracks-dataset/data](https://www.kaggle.com/datasets/maharshipandya/-spotify-tracks-dataset/data)

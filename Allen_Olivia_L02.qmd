@@ -49,7 +49,6 @@ tinder_data <- read_csv("data/tinder_data.csv")
 tinder_data_codebook <- read_csv("data/tinder_data_codebook.csv")
 ```
 
-
 ## Exercises
 
 ### Exercise 1✅
