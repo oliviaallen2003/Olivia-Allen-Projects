@@ -1,0 +1,236 @@
+---
+title: "L08 Factors"
+subtitle: "Data Science 1 with R (STAT 301-1)"
+author: "Olivia Allen"
+pagetitle: "L07 Olivia Allen"
+date: today
+
+format:
+  html:
+    toc: true
+    toc-depth: 4
+    toc-location: left
+    embed-resources: true
+    code-fold: false
+    link-external-newwindow: true
+
+execute:
+  warning: false
+
+from: markdown+emoji
+reference-location: margin
+citation-location: margin  
+---
+
+::: {.callout-tip icon=false}
+
+## Github Repo Link✅
+
+[https://github.com/stat301-1-2024-fall/L08-factors-oliviaallen2003.git](https://github.com/stat301-1-2024-fall/L08-factors-oliviaallen2003.git)
+
+:::
+
+## Load packages✅
+
+```{r}
+#| label: load-pkgs
+#| code-fold: false
+
+# Loading package(s)
+library(tidyverse)
+library(forcats)
+```
+
+## Exercises✅ 
+
+### Exercise 1✅ 
+
+The variable `marital` has 6 levels: `"No answer"`, `"Never married"`, `"Separated"`, `"Divorced"`, `"Widowed"`, `"Married"`.
+
+Reorder the levels to be `"Married"`, `"Never married"`, `"Separated"`, `"Divorced"`, `"Widowed"`, `"No answer"`.
+
+This should be done within `mutate()` and store this new dataset as `gss_clean`.
+
+Prove this was successful by making a simple bar chart.
+
+::: {.callout-tip icon="false"}
+## Solution
+
+```{r}
+#| label: ex-1
+
+gss_clean <- gss_cat |>
+  mutate(marital = fct_relevel(marital, "Married", "Never married", "Separated", "Divorced", "Widowed", "No answer"))
+
+  ggplot(gss_clean, aes(x = marital)) + 
+  geom_bar() +
+  labs(title = "Distribution of Marital Status",
+       x = "Marital Status",
+       y = "Count") + 
+  theme_minimal()
+```
+:::
+
+### Exercise 2✅ 
+
+Starting from the `gss_clean` dataset from Exercise 1, change the level `"Never married"` to read as `"single"` and lowercase all the other levels ie: `"married"`, `"separated"`, ...
+
+This should be done within the `gss_clean` dataset, ie: do not store as a new dataset, overwrite `gss_clean`.
+
+Prove this was successful by making a simple bar chart.
+
+::: {.callout-tip icon="false"}
+## Solution
+
+```{r}
+#| label: ex-2
+
+gss_clean <- gss_clean |>
+  mutate(marital = fct_recode(marital, "single" = "Never married"),
+         marital = fct_relabel(marital, tolower))
+  
+ggplot(gss_clean, aes(x = marital)) + 
+  geom_bar() + 
+  labs(title = "Distribution of Marital Status",
+       x = "Marital Status",
+       y = "Count") + 
+  theme_minimal()
+```
+:::
+
+### Exercise 3✅ 
+
+The variable `race` has 4 levels: `"Other"`, `"Black"`, `"White"`, `"Not applicable"`
+
+Using your `gss_clean` dataset, demonstrate how to add the additional level options: `"Hispanic"`, `"Asian"`, `"American Indian"`.
+
+Prove this was successful by running the line of code `levels(gss_clean$race)`
+
+::: {.callout-tip icon="false"}
+## Solution
+
+```{r}
+#| label: ex-3
+
+gss_clean <- gss_clean |>
+  mutate(race = fct_expand(race, "Hispanic", "Asian", "American Indian"))
+
+levels(gss_clean$race)
+```
+:::
+
+### Exercise 4✅ 
+
+What happens when you are defining levels in a `factor` with the `levels` argument and either do not define a level that exists in the dataset or have a typo in a level that exists in the dataset?  
+
+::: {.callout-tip icon="false"}
+## Solution
+
+```{r}
+#| label: ex-4
+
+mispelling <- factor(gss_clean$race, levels = c("Other", "Blak", "White", "Not applicable"))
+
+head(mispelling, n = 36)
+table(mispelling)
+
+new_level <- factor(gss_clean$race, levels = c("Other", "Asian", "White", "Not applicable"))
+
+head(new_level, n = 36)
+table(new_level)
+```
+When you have a typo in a level that exists in the dataset, the typo will not match any actual data points and observations with the intended level will be NA. The total count for the mispelled level will be 0 as shown in the output above. The count for "Blak" which was supposed to be "Black" is 0. The same output occurs when you do not define a level that exists in the dataset. The old level will be dropped and any data points corresponding to the old level will be NA. The total count for the undefined level will also be 0. This is displayed in the output as "Asian" has a count of 0. 
+:::
+
+### Exercise 5✅ 
+
+Create a bar chart to explore the distribution of `rincome` (reported income). What makes the default bar chart hard to understand? Improve the bar chart.
+
+::: {.callout-tip icon="false"}
+## Solution
+
+```{r}
+#| label: ex-5-default
+
+ggplot(gss_clean, aes(x = rincome)) + 
+  geom_bar() +
+  labs(title = "Distribution of Reported Income",
+       x = "Reported Income",
+       y = "Count") +
+  theme_minimal()
+```
+The default bar is hard to understand because the income levels are not in a logical order. The labels go from $25000 or more to $20000 to $24999. This is confusing because if the x-axis reads from high to low then each individual axis label should to, so it should go from $25000 or more to $24999 to $20000. Additionally, the x-axis is overcrowded with long label names making it a bit challenging to read. Lastly, there are a lot of irrelevant categories such as "No Answer" and "Don't Know" that catch your eye but are not entirely relevant or important. Perhaps all of these unknown responses should be in one bar. 
+
+```{r}
+#| label: ex-5-improved
+
+gss_improved <- gss_clean |>
+  mutate(rincome = fct_recode(rincome,
+                              "$0-$1000" = "Lt $1000",
+                              "$1000-$2999" = "$1000 to 2999",
+                              "$3000-$3999" = "$3000 to 3999",
+                              "$4000-$4999" = "$4000 to 4999",
+                              "$5000-$5999" = "$5000 to 5999",
+                              "$6000-$6999" = "$6000 to 6999",
+                              "$7000-$7999" = "$7000 to 7999",
+                              "$8000-$9999" = "$8000 to 9999",
+                              "$10000-$14999" = "$10000 - 14999",
+                              "$15000-$19999" = "$15000 - 19999",
+                              "$20000-$24999" = "$20000 - 24999",
+                              "$25000+" = "$25000 or more") |>
+           fct_drop() |>
+           fct_relevel("$0-$1000", "$1000-$2999", "$3000-$3999", "$4000-$4999",
+                       "$5000-$5999", "$6000-$6999", "$7000-$7999", "$8000-$9999",
+                       "$10000-$14999", "$15000-$19999", "$20000-$24999", "$25000+"))
+
+ggplot(gss_improved |>
+         filter(!rincome %in% c("Refused", "Don't know", "No answer", "Not applicable")),
+         aes(x = rincome)) + 
+  geom_bar() + 
+  labs(title = "Distribution of Reported Income",
+       x = "Reported Income",
+       y = "Count") +
+  theme_minimal() + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+:::
+
+### Exercise 6✅ 
+
+The variable `year` is currently coded as an integer. Demonstrate how to convert this variable to a `factor`.
+
+::: {.callout-tip icon="false"}
+## Solution
+
+```{r}
+#| label: ex-6
+gss_clean <- gss_clean |>
+  mutate(year = as.factor(year))
+
+str(gss_clean$year)
+```
+
+:::
+
+### Exercise 7✅ 
+
+Demonstrate how to collapse `rincome` into a smaller set of categories.
+
+::: {.callout-tip icon="false"}
+## Solution
+
+```{r}
+#| label: ex-7
+
+gss_smaller <- gss_clean |>
+  mutate(rincome = fct_collapse(rincome, 
+                                "$4999-$0" = c("Lt $1000", "$1000 to 2999", "$3000 to 3999", "$4000 to 4999"),
+                                "$9999-$5000" = c("$5000 to 5999", "$6000 to 6999", "$7000 to 7999", "$8000 to 9999"),
+                                "$14999-$10000" = c("$10000 - 14999"),
+                                "$19999-$15000" = c("$15000 - 19999"),
+                                "$20000+" = c("$20000 - 24999", "$25000 or more"),
+                                "Unknown" = c("Not applicable", "No answer", "Don't know", "Refused")))
+
+levels(gss_smaller$rincome)
+```
+:::
