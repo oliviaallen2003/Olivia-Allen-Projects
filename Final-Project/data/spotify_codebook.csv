@@ -1,0 +1,24 @@
+# Spotify Dataset Codebook
+
+Variables,Meaning
+...1, Row index
+track_id, Numeric unique identifier for the Spotify track
+artists, Names of artists associated with the track
+album_name, Name of the album the track belongs to
+track_name, Name of the track
+popularity, Popularity score (0–100) from Spotify
+duration_ms, Duration of the track in milliseconds
+explicit, Binary indicator of explicit content (1 for explicit, 0 otherwise)
+danceability, Danceability measure (0–1); how suitable a track is for dancing
+energy, Energy measure (0–1); the intensity and activity of a track
+key, Key of the track (0–11); integers correspond to pitches (C = 0, C#/Db = 1, ..., B = 11)
+loudness, Loudness of the track in decibels (dB)
+mode, Modality of the track (1 for major, 0 for minor)
+speechiness, Speechiness measure (0–1), higher values indicate spoken word content
+acousticness, Acousticness measure (0–1), likelihood that the track is acoustic
+instrumentalness, Instrumentalness measure (0–1), likelihood the track contains no vocals
+liveness, Liveness measure (0–1), probability of the track being performed live
+valence, Valence measure (0–1), describing the musical positiveness
+tempo, Tempo of the track in beats per minute (BPM)
+time_signature, Time signature of the track (example: 4 for 4/4 time)
+track_genre, Genre of the track
