@@ -1,0 +1,328 @@
+---
+title: "L09 Dates & Time"
+subtitle: "Data Science 1 with R (STAT 301-1)"
+author: "Olivia Allen"
+pagetitle: "L09 Olivia Allen"
+
+date: today
+
+format:
+  html:
+    toc: true
+    toc-depth: 4
+    toc-location: left
+    embed-resources: true
+    code-fold: false
+    link-external-newwindow: true
+
+execute:
+  warning: false
+
+from: markdown+emoji
+reference-location: margin
+citation-location: margin  
+---
+
+::: {.callout-tip icon=false}
+
+## Github Repo Link✅
+
+[https://github.com/stat301-1-2024-fall/L09-dates-times-oliviaallen2003.git](https://github.com/stat301-1-2024-fall/L09-dates-times-oliviaallen2003.git)
+
+:::
+
+## Load packages & data✅
+
+```{r}
+#| label: load-pkgs-data
+
+library(tidyverse)
+library(lubridate)
+library(nycflights13)
+library(knitr)
+
+tinder_data <- read_csv("data/tinder_data.csv")
+```
+
+## Create flights_dt✅
+
+```{r}
+#| label: create-flights-dt
+make_datetime_100 <- function(year, month, day, time) {
+  make_datetime(year, month, day, time %/% 100, time %% 100)
+}
+
+flights_dt <- flights |> 
+  filter(!is.na(dep_time), !is.na(arr_time)) |> 
+  mutate(
+    dep_time = make_datetime_100(year, month, day, dep_time),
+    arr_time = make_datetime_100(year, month, day, arr_time),
+    sched_dep_time = make_datetime_100(year, month, day, sched_dep_time),
+    sched_arr_time = make_datetime_100(year, month, day, sched_arr_time)
+  ) |> 
+  select(origin, dest, ends_with("delay"), ends_with("time"))
+```
+
+
+## Exercises✅
+
+### Exercise 1 ✅
+
+At the top of the document in the yaml header, define the `date` to be the current date using `today`.
+
+### Exercise 2✅
+
+What happens if you try to parse a string that contains invalid dates, like this one?
+
+```{r}
+#| label: ex-01
+#| eval: false
+
+# invalid string example
+ymd(c("2010-10-10", "bananas"))
+```
+
+::: {.callout-tip icon="false"}
+## Solution
+
+If you try to parse a string containing an invalid date, like "bananas", using ymd(), it will return NA for the invalid entry but it will still parse the date that is valid. There will also be a warning that "1 failed to parse" or however many of the strings are invalid dates.
+
+:::
+
+### Exercise 3✅
+
+Use the appropriate `lubridate` function to parse each of the following dates:
+
+```{r}
+#| label: ex-02
+#| eval: false
+
+# dates to parse
+d1 <- "January 1, 2010"
+d2 <- "2015-Mar-07"
+d3 <- "06-Jun-2017"
+d4 <- c("August 19 (2015)", "July 1 (2015)")
+d5 <- "12/30/14" # Dec 30, 2014
+```
+
+::: {.callout-tip icon="false"}
+## Solution
+
+```{r}
+#| label: ex-03
+
+# dates to parse
+d1 <- "January 1, 2010"
+d2 <- "2015-Mar-07"
+d3 <- "06-Jun-2017"
+d4 <- c("August 19 (2015)", "July 1 (2015)")
+d5 <- "12/30/14" # Dec 30, 2014
+
+parsed_d1 <- mdy(d1)  
+parsed_d1 
+
+parsed_d2 <- ymd(d2) 
+parsed_d2
+
+parsed_d3 <- dmy(d3)  
+parsed_d3
+
+parsed_d4 <- mdy(d4)  
+parsed_d4
+
+parsed_d5 <- mdy(d5) 
+parsed_d5
+```
+:::
+
+### Exercise 4✅
+
+Compare `dep_time`, `sched_dep_time` and `dep_delay`. Are they consistent? Explain your findings.
+
+::: {.callout-tip icon="false"}
+## Solution
+
+```{r}
+#| label: ex-04
+
+flights_compare <- flights_dt |>
+  mutate(
+    calculated_dep_delay = dep_time - sched_dep_time,
+    dep_delay_duration = dminutes(dep_delay),
+    is_consistent = dep_delay == calculated_dep_delay,
+    .keep = "none"
+  )
+
+flights_compare
+```
+```{r}
+#| label: ex-inconsistenies
+
+inconsistencies <- flights_compare |>
+  summarize(total_inconsistent = sum(!is_consistent, na.rm = TRUE),
+            total_rows = n(),
+            consistency_rate = mean(is_consistent, na.rm = TRUE))
+
+inconsistencies
+```
+Based on this analysis `dep_time`, `sched_dep_time` and `dep_delay` have a high level of inconsistency. As shown in the inconsistencies tibble, only 5% of of records are consistent meaning that the dep_delay from flights_dt is the rarely ever the same as the calculated delay (calculated_dep_delay) which I created by subtracting sched_dep_time from dep_time. This inconsistency suggests that dep_delay may not have been recorded simply by the difference between the scheduled and actual departure times. There may have been rounding involved or issues with NA values. 
+:::
+
+
+### Exercise 5✅
+
+How does the average delay time change over the course of a day? Should you use `dep_time` or `sched_dep_time` to assess this? Explain your choice.
+
+::: {.callout-tip icon="false"}
+## Solution
+
+```{r}
+#| label: ex-05
+delay_change <- flights_dt |>
+  mutate(
+    sched_dep_hour = hour(sched_dep_time)
+  ) |>
+  group_by(sched_dep_hour) |>
+  summarize(avg_delay = mean(dep_delay, na.rm = TRUE))
+
+delay_change 
+```
+It is best to use sched_dep_time because it represents the intended schedule, whereas dep_time would be impacted by the delays. As shown in the tibble, the average delay times are usually low in the early morning at around 5am and then gradually increase throughout the day. The average delay time peaks around 7pm with an average delay of around 25 minuets. After this, the delays decrease slightly. Overall, late afternoon and evening flights experience the longest delays. 
+:::
+
+
+### Exercise 6✅
+
+On what day of the week should you leave if you want to minimize the chance of a delay?
+
+::: {.callout-tip icon="false"}
+## Solution
+
+```{r}
+#| label: ex-06
+weekly_delays <- flights_dt |>
+  mutate(wday = wday(dep_time, label = TRUE, abbr = TRUE)) |>
+  group_by(wday) |>
+  summarize(
+    avg_dep_delay = mean(dep_delay, na.rm = TRUE),
+    avg_arr_delay = mean(arr_delay, na.rm = TRUE),
+    total_flights = n(),
+    .groups = "drop"
+  ) |>
+  arrange(avg_dep_delay)
+
+weekly_delays
+```
+If you want to minimize the chance of a delay, you should leave on Saturday. It has the lowest average departure delay of approximately 7.61 minutes and lowest calculated arrival delay of -1.46 minuets indicating a large number of flights may arrive early on this day. The chart suggests that flights departing on Saturdays tend to experience fewer delays compared to other days of the week.
+
+:::
+
+
+### Exercise 7✅
+
+Create a tibble with 3 variables containing the following:
+
+1. every month in a year (i.e., `"January"`),
+2. the date of the first day of each month (i.e., `"2025-01-01"`), and 
+3. the day of the week that each first day falls on (i.e., `"Tuesday"`). 
+
+::: {.callout-tip icon="false"}
+## Solution
+
+```{r}
+#| label: ex-07
+tibble(
+  month = month(1:12, label = TRUE, abbr = FALSE),
+  date = ymd("2025-01-01") + months(0:11),
+  day = wday(date, label = TRUE, abbr = FALSE)
+)
+```
+:::
+
+## Case Study✅
+
+1. Describe the distribution of `age_current` on Tinder (calculated from the current date to their birth date). We typically express age in years, round down to the nearest whole number.
+2. Describe the distribution of `age_joined` on Tinder (calculated from `user_create_date` and `user_birth_date`). We typically express age in years, round down to the nearest whole number.
+3. Which distribution do you believe is a more accurate representation of user age and why?
+
+::: {.callout-tip icon="false"}
+## Solution
+
+```{r, echo=FALSE}
+#| label: age-current
+
+tinder_current_age <- tinder_data |>
+  mutate(
+    user_birth_date = as.Date(user_birth_date),
+    age_current = as.numeric(difftime(Sys.Date(), 
+                        user_birth_date, units = "days") / 365)
+  )
+
+age_current_summary <- tinder_current_age |>
+  summarise(
+    Mean = floor(mean(age_current, na.rm = TRUE)),
+    Median = floor(median(age_current, na.rm = TRUE)),
+    Min = floor(min(age_current, na.rm = TRUE)),
+    Max = floor(max(age_current, na.rm = TRUE)),
+    SD = floor(sd(age_current, na.rm = TRUE))
+  ) |>
+  kable(caption = "Age current summary statistics")
+
+age_current_summary
+
+ggplot(tinder_current_age, aes(x = age_current)) +
+  geom_histogram(binwidth = 2, fill = "steelblue", color = "black", alpha = 0.7) +
+  labs(
+    title = "Distribution of Current Age on Tinder",
+    x = "Age",
+    y = "Frequency"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(size = 16, face = "bold"),
+    axis.title = element_text(size = 12)
+  )
+
+```
+The distribution of age_current on Tinder shows that the majority of users are in their late 20s and early 30s, with a mean age of roughly 30 years and a median age of 28 years, indicating a slightly right-skewed distribution. The ages range from a minimum of 3 years to a maximum of 142 years, although the extreme values are likely entry errors. The standard deviation of 7 years might suggest moderate variability, with most users falling within the range of 20 to 40 years. The histogram shows a long tail extending toward older ages likely due to the presence of outliers. The data shows that most users are young adults. 
+
+```{r, echo=FALSE}
+#| label: age-joined
+
+tinder_age_joined <- tinder_data |>
+  mutate(
+    user_birth_date = as.Date(user_birth_date),
+    user_create_date = as.Date(user_create_date),
+    age_joined = as.numeric(difftime(user_create_date, 
+                         user_birth_date, units = "days") / 365)
+  )
+
+age_joined_summary <- tinder_age_joined |>
+  summarise(
+    Mean = floor(mean(age_joined, na.rm = TRUE)),
+    Median = floor(median(age_joined, na.rm = TRUE)),
+    Min = floor(min(age_joined, na.rm = TRUE)),
+    Max = floor(max(age_joined, na.rm = TRUE)),
+    SD = floor(sd(age_joined, na.rm = TRUE))
+  ) |>
+  kable(caption = "Age joined summary statistics")
+
+age_joined_summary
+
+ggplot(tinder_age_joined, aes(x = age_joined)) +
+  geom_histogram(binwidth = 2, fill = "steelblue", color = "black", alpha = 0.7) +
+  labs(
+    title = "Distribution of Age When Users Joined Tinder",
+    x = "Age",
+    y = "Frequency"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(size = 16, face = "bold"),
+    axis.title = element_text(size = 12)
+  )
+```
+The distribution of age_joined on Tinder shows that users typically joined the app in their early 20s. The mean age joined is 24 years, with a median of 23 years, indicating a slightly right-skewed distribution. The ages range from a minimum of 0 years to a maximum of 137 years, although the extreme values are likely entry errors. The standard deviation is 7 years, showing moderate variability. The histogram reinforces that most users joined in their late teens to late 20s, with a sharp decline in frequency after early 30s.
+
+Between the distributions, I think the age_current distribution is a more accurate representation of user age. This is because it reflects the actual ages as of the current date so it has the most recent and relevant information. The age_joined represents the age when users first created their accounts, which may not accurately represent the current user base. Someone who joined Tinder at 23 may now be significantly older, depending on how long they've been active on the platform. In conclusion, while age_joined offers insights into the ages at which users started using Tinder, age_current provides a more reliable view of the platform's user demographic today.
+:::
