@@ -24,7 +24,7 @@ citation-location: margin
 
 ::: {.callout-tip icon=false}
 
-## Github Repo Link✅
+## Github Repo Link✅ 
 
 [https://github.com/stat301-1-2024-fall/L02-data-transformations-oliviaallen2003.git](https://github.com/stat301-1-2024-fall/L02-data-transformations-oliviaallen2003.git)
 
