@@ -1,0 +1,387 @@
+---
+title: "L11 Functions and Iteration"
+subtitle: "Data Science 1 with R (STAT 301-1)"
+author: "Olivia Allen"
+pagetitle: "L11 Olivia Allen"
+date: today
+
+format:
+  html:
+    toc: true
+    toc-depth: 4
+    toc-location: left
+    embed-resources: true
+    code-fold: false
+    link-external-newwindow: true
+
+execute:
+  warning: false
+
+from: markdown+emoji
+reference-location: margin
+citation-location: margin  
+---
+
+::: {.callout-tip icon=false}
+
+## Github Repo Link ✅
+
+[https://github.com/stat301-1-2024-fall/L11-functions-and-iteration-oliviaallen2003.git](https://github.com/stat301-1-2024-fall/L11-functions-and-iteration-oliviaallen2003.git)
+:::
+
+## Packages & Datasets
+
+Datasets referenced in this lab are from the `palmerpenguins` and `mpg` packages. 
+
+```{r}
+#| label: load-pkgs-data
+
+# Loading package(s)
+library(tidyverse)
+library(palmerpenguins)
+library(fs)
+```
+
+## Exercises
+
+### Exercise 1 ✅
+
+Practice turning the following code snippets into functions. Think about what each function does. What would you call it? How many arguments does it need?
+
+```{r}
+#| label: ex-01
+#| eval: false
+
+# function 1
+mean(is.na(x))
+
+# function 2
+x / sum(x, na.rm = TRUE)
+
+# function 3
+round(x / sum(x, na.rm = TRUE) * 100, 1)
+```
+
+::: {.callout-tip icon="false"}
+## Solution
+
+```{r}
+#| label: ex-01-solution
+
+# function 1
+proportion_na <- function(x) {
+  mean(is.na(x))
+}
+
+# function 2
+proportions <- function(x) {
+  x / sum(x, na.rm = TRUE)
+}
+
+# function 3 
+percentages <- function(x) {
+  round(x / sum(x, na.rm = TRUE) * 100, 1)
+}
+```
+
+
+:::
+
+### Exercise 2✅
+
+Write a function that returns how old you are in years, given your birthday (as `"YYYY-MM-DD"`). 
+
+::: {.callout-tip icon="false"}
+## Solution
+
+```{r}
+#| label: ex-02
+
+calculate_age <- function(birthday) {
+  birth_date <- as.Date(birthday, format = "%Y-%m-%d")
+  current_date <- Sys.Date()
+  age <- as.numeric(difftime(current_date, birth_date, units = "weeks")) %/% 52.25
+  
+  return(age)
+}
+
+calculate_age("2003-05-08")
+```
+
+
+:::
+
+### Exercise 3✅
+
+Write a function that computes the mean, standard deviation, and count given a dataset and a numeric variable.
+
+Test your function using the `penguins` dataset and a numeric variable of your choice.
+
+::: {.callout-tip icon="false"}
+## Solution
+
+```{r}
+#| label: ex-03
+
+sum_stats <- function(.data, x) {
+  .data |>
+    summarize(
+      mean = mean({{ x }}, na.rm = TRUE),
+      sd = sd({{ x }}, na.rm = TRUE),
+      n = n(),
+      .groups = "drop"
+    )
+}
+
+sum_stats(penguins, bill_length_mm)
+```
+:::
+
+### Exercise 4✅
+
+Write a function that counts the number of missing observations given a dataset and a variable.
+
+Test your function using the `penguins` dataset and a variable of your choice.
+
+::: {.callout-tip icon="false"}
+## Solution
+
+```{r}
+#| label: ex-04
+
+count_missing <- function(data, variable) {
+  sum(is.na(data[[variable]]))
+}
+
+count_missing(penguins, "sex")
+```
+
+
+:::
+### Exercise 5✅
+
+Write a function that draws a scatterplot given a dataset and x and y variables. Add a line of best fit and an appropriate title to the plot.
+
+Test your function using the `penguins` dataset and an x and y variable of your choice.
+
+::: {.callout-tip icon="false"}
+## Solution
+
+```{r}
+#| label: ex-05
+
+scatter_with_lm <- function(data, x, y) {
+  ggplot(data, aes(x = .data[[x]], y = .data[[y]])) +
+    geom_point() + 
+    geom_smooth(method = "lm", color = "red") +
+    labs(
+      title = paste("Scatterplot of", x, "vs", y),
+      x = x,
+      y = y
+    ) +
+    theme_minimal()
+}
+
+scatter_with_lm(penguins, "bill_length_mm", "bill_depth_mm")
+```
+
+
+:::
+
+
+### Exercise 6✅
+
+Use the `across()` function to...
+
+a) compute the number of unique values in each column of `penguins`
+b) compute the `mean` of every numeric column of `penguins`.
+
+::: {.callout-tip icon="false"}
+## Solution
+
+```{r}
+#| label: ex-06
+
+# a) 
+penguins |>
+  summarise(across(everything(), ~ n_distinct(.)))
+
+# b)
+penguins |>
+  summarise(across(where(is.numeric), ~ mean(., na.rm = TRUE)))
+```
+:::
+
+
+### Exercise 7✅
+
+Write code that uses one of the map functions to:
+
+a) compute the number of unique values in each column of `penguins`
+b) compute the `mean` of every numeric column in `penguins`.
+
+::: {.callout-tip icon="false"}
+## Solution
+
+```{r}
+#| label: ex-07
+
+# a)
+map_dbl(penguins, ~ n_distinct(.))
+
+# b)
+map_dbl(penguins |>
+          select(where(is.numeric)), ~ mean(., na.rm = TRUE))
+```
+
+
+:::
+
+### Exercise 8✅
+
+Write a `for` loop that uses your function in Exercise 3 to compute the mean, standard deviation, and count of every numeric variable in the `penguins` dataset.
+
+Output the results as a nicely formatted html table.
+
+::: {.callout-tip icon="false"}
+## Solution
+
+```{r}
+#| label: ex-08
+
+numeric_vars <- penguins |>
+  select(where(is.numeric)) |>
+  colnames()
+
+for(var in numeric_vars){
+  sum_stats(penguins, x = !!sym(var))
+  print(var)
+}
+
+sum_stats(penguins, bill_length_mm)
+```
+
+
+:::
+
+### Exercise 9✅
+
+Write a `for` loop that plots the distribution of each variable in the `penguins` dataset and saves each plot to a `\plots` subdirectory. 
+
+Hint: need to determine if a variable is numeric or categorical to determine the appropriate plot.
+
+::: {.callout-tip icon="false"}
+## Solution
+
+```{r}
+#| label: ex-09 
+
+dir_create("plots")
+
+for (variable in names(penguins)) {
+  plot_path <- file.path("plots", paste0(variable, "_distribution.png"))
+  
+  if (is.numeric(penguins[[variable]])) {
+    plot <- ggplot(penguins, aes(x = .data[[variable]])) +
+      geom_histogram(
+        bins = 30,
+        fill = "blue",
+        alpha = 0.7,
+        color = "black"
+      ) +
+      labs(
+        title = paste("Distribution of", variable),
+        x = variable,
+        y = "Count"
+      ) +
+      theme_minimal()
+  } else {
+    plot <- ggplot(penguins, aes(x = factor(.data[[variable]]))) +
+      geom_bar(
+        fill = "orange",
+        alpha = 0.7,
+        color = "black"
+      ) +
+      labs(
+        title = paste("Distribution of", variable),
+        x = variable,
+        y = "Count"
+      ) +
+      theme_minimal() +
+      theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  }
+  ggsave(plot_path, plot, width = 7, height = 5)
+}
+```
+:::
+
+### Exercise 10✅
+
+Determine which variables in the `mpg` dataset should be factors and convert them to factors using a `for` loop.
+
+::: {.callout-tip icon="false"}
+## Solution
+
+```{r}
+#| label: ex-10
+
+mpg |>
+  map(n_distinct)
+
+mpg |>
+  map(typeof)
+
+factors_vars <- c("manufacturer", "year", "cyl", "drv", "fl", "class")
+
+for (var in factors_vars){
+  mpg[[var]] <- factor(mpg[[var]])
+}
+
+str(mpg)
+```
+
+
+:::
+
+### Exercise 11✅
+
+The `data` subdirectory has various CSV files that you want to read in. 
+
+First, store their paths in a vector: `files <- dir("data/", pattern = "\\.csv$", full.names = TRUE)`.
+
+a) Write a for loop that will read in each file individually.
+b) Write a for loop that will load the files into a single data frame.
+
+
+::: {.callout-tip icon="false"}
+## Solution
+
+```{r}
+#| label: ex-11-store-paths
+files <- dir("data/", pattern = "\\.csv$", full.names = TRUE)
+```
+
+```{r}
+#| label: ex-11-a
+
+data_list <- list()
+
+for (file in files) {
+  data_list[[file]] <- read.csv(file)
+}
+
+str(data_list)
+```
+
+```{r}
+#| label: ex-11-b
+combined_data <- data.frame()
+
+for (file in files) {
+  temp_data <- read.csv(file)
+  combined_data <- rbind(combined_data, temp_data)
+}
+
+str(combined_data)
+```
+:::
